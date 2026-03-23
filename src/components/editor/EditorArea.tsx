@@ -43,6 +43,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Property dialog state
     const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
     const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+    const [selectedTable, setSelectedTable] = useState<HTMLTableElement | null>(null);
+
+    // Undo/redo history
+    const historyRef = useRef<string[]>([]);
+    const historyIndexRef = useRef<number>(-1);
+    const isUndoRedoRef = useRef(false);
+    const MAX_HISTORY = 15;
 
     // Resize state
     const resizeRef = useRef<{

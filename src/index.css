@@ -269,6 +269,13 @@ All colors MUST be HSL.
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
+  cursor: pointer;
+}
+
+.editor-content table.editor-table-selected {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.1);
 }
 
 .editor-content th,
