@@ -128,6 +128,28 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             range.insertNode(span);
             selection.removeAllRanges();
           }
+        } else if (command === "foreColor" && value) {
+          restoreSelection();
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
+            const span = document.createElement("span");
+            span.style.color = value;
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
+          }
+        } else if (command === "cellBgColor" && value) {
+          // Find the closest <td> or <th> from the current selection
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const node = selection.anchorNode;
+            const cell = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("td, th") as HTMLElement | null;
+            if (cell) {
+              cell.style.backgroundColor = value;
+            }
+          }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
         } else if (command === "createLink" && value) {
