@@ -222,7 +222,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       onSourceModeChange?.(newMode);
     }, [sourceMode, sourceValue, onSourceModeChange]);
 
-    // Context menu handler
+    // Context menu handler — preserve cell selection on right-click
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
 
@@ -234,13 +234,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         return;
       }
 
-      const cell = target.closest("td, th") as HTMLElement | null;
+      const cell = target.closest("td, th") as HTMLTableCellElement | null;
       if (!cell) return;
 
       e.preventDefault();
       contextCellRef.current = cell;
       contextRowRef.current = cell.closest("tr") as HTMLTableRowElement;
       contextTableRef.current = cell.closest("table") as HTMLTableElement;
+      // Don't clear selectedCells — preserve multi-cell selection for merge
       setContextMenu({ x: e.clientX, y: e.clientY, type: "table" });
     }, []);
 
