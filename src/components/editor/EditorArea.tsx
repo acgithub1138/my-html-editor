@@ -660,6 +660,7 @@ function highlightHTML(source: string): string {
       if (doctype) {
         return `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(doctype)}</span>`;
       }
+      if (entity) {
         return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
       }
       if (tagName) {
