@@ -670,6 +670,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       if (!editor || sourceMode) return;
 
       const onMouseDown = (e: MouseEvent) => {
+        // Only start drag on left-click, not right-click
+        if (e.button !== 0) return;
         const target = e.target as HTMLElement;
         const cell = target.closest("td, th") as HTMLTableCellElement | null;
         const table = target.closest("table") as HTMLTableElement | null;
