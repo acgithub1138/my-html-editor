@@ -44,7 +44,7 @@ interface EditorToolbarProps {
   isSourceMode: boolean;
   onToggleSource: () => void;
   onInsertTable: (rows: number, cols: number) => void;
-  onInsertImage: (url: string, width: string, height: string) => void;
+  onInsertImage: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   onSaveSelection: () => void;
 }
 
@@ -79,48 +79,72 @@ const TablePicker = ({ onInsert, onClose }: { onInsert: (r: number, c: number) =
   );
 };
 
-const ImageDialog = ({ onInsert, onClose }: { onInsert: (url: string, w: string, h: string) => void; onClose: () => void }) => {
+const ImageDialog = ({ onInsert, onClose }: { onInsert: (url: string, w: string, h: string, alt?: string, title?: string) => void; onClose: () => void }) => {
   const [url, setUrl] = useState("");
+  const [alt, setAlt] = useState("");
+  const [title, setTitle] = useState("");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
+  const [lockRatio, setLockRatio] = useState(true);
+
+  const inputClass = "w-full px-2 py-1.5 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring";
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-toolbar flex-wrap">
-      <input
-        type="url"
-        placeholder="Image URL"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="flex-1 min-w-[200px] px-2 py-1 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring"
-        autoFocus
-      />
-      <input
-        type="text"
-        placeholder="Width (e.g. 300 or 50%)"
-        value={width}
-        onChange={(e) => setWidth(e.target.value)}
-        className="w-36 px-2 py-1 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring"
-      />
-      <input
-        type="text"
-        placeholder="Height (e.g. 200 or auto)"
-        value={height}
-        onChange={(e) => setHeight(e.target.value)}
-        className="w-36 px-2 py-1 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring"
-      />
-      <button
-        onClick={() => { if (url) { onInsert(url, width, height); onClose(); } }}
-        className="px-3 py-1 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-      >
-        Insert
-      </button>
-      <button
-        onClick={onClose}
-        className="px-3 py-1 text-sm rounded text-muted-foreground hover:bg-toolbar-hover transition-colors"
-      >
-        Cancel
-      </button>
-    </div>
+    <>
+      <div className="fixed inset-0 bg-black/30 z-[70]" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-popover border border-border rounded-lg shadow-xl w-[440px] max-w-[90vw]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <h3 className="text-base font-semibold text-foreground">Insert/Edit Image</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Source</label>
+            <input className={inputClass} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." autoFocus />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Alternative description</label>
+            <input className={inputClass} value={alt} onChange={(e) => setAlt(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Image title</label>
+            <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Width</label>
+              <input className={inputClass} value={width} onChange={(e) => setWidth(e.target.value)} placeholder="e.g. 300 or 50%" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Height</label>
+              <input className={inputClass} value={height} onChange={(e) => setHeight(e.target.value)} placeholder="e.g. 200 or auto" />
+            </div>
+            <button
+              onClick={() => setLockRatio(!lockRatio)}
+              className={`p-1.5 mb-0.5 rounded border transition-colors ${lockRatio ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
+              title="Lock aspect ratio"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {lockRatio ? (
+                  <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>
+                ) : (
+                  <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></>
+                )}
+              </svg>
+            </button>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={onClose} className="px-4 py-1.5 text-sm rounded border border-border text-foreground hover:bg-accent transition-colors">Cancel</button>
+            <button
+              onClick={() => { if (url) { onInsert(url, width, height, alt, title); onClose(); } }}
+              className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

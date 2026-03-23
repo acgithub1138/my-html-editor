@@ -8,7 +8,7 @@ export interface EditorAreaHandle {
   setHTML: (html: string) => void;
   getActiveFormats: () => Set<string>;
   insertTable: (rows: number, cols: number) => void;
-  insertImageWithSize: (url: string, width: string, height: string) => void;
+  insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   isSourceMode: boolean;
   toggleSource: () => void;
   saveSelection: () => void;
@@ -458,7 +458,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         document.execCommand("insertHTML", false, html);
         onChange?.(editorRef.current?.innerHTML || "");
       },
-      insertImageWithSize: (url: string, width: string, height: string) => {
+      insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => {
         if (sourceMode) return;
         editorRef.current?.focus();
         const w = width ? (width.includes('%') ? width : `${width}px`) : '';
@@ -466,7 +466,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         let style = '';
         if (w) style += `width:${w};`;
         if (h) style += `height:${h};`;
-        const img = `<img src="${url}"${style ? ` style="${style}"` : ''} alt="" />`;
+        const altAttr = alt ? ` alt="${alt}"` : ' alt=""';
+        const titleAttr = title ? ` title="${title}"` : '';
+        const img = `<img src="${url}"${altAttr}${titleAttr}${style ? ` style="${style}"` : ''} />`;
         document.execCommand("insertHTML", false, img);
         onChange?.(editorRef.current?.innerHTML || "");
       },
