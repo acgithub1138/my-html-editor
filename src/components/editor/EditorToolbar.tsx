@@ -44,6 +44,7 @@ interface EditorToolbarProps {
   onToggleSource: () => void;
   onInsertTable: (rows: number, cols: number) => void;
   onInsertImage: (url: string, width: string, height: string) => void;
+  onSaveSelection: () => void;
 }
 
 const TablePicker = ({ onInsert, onClose }: { onInsert: (r: number, c: number) => void; onClose: () => void }) => {
@@ -122,7 +123,7 @@ const ImageDialog = ({ onInsert, onClose }: { onInsert: (url: string, w: string,
   );
 };
 
-const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage }: EditorToolbarProps) => {
+const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection }: EditorToolbarProps) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
@@ -165,7 +166,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
           className={selectClass + " w-[130px]"}
           onChange={(e) => { if (e.target.value) onCommand("fontName", e.target.value); }}
           defaultValue=""
-          onMouseDown={(e) => e.stopPropagation()}
+          onMouseDown={() => onSaveSelection()}
         >
           <option value="" disabled>Font</option>
           {webSafeFonts.map((f) => (
@@ -183,7 +184,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
             }
           }}
           defaultValue=""
-          onMouseDown={(e) => e.stopPropagation()}
+          onMouseDown={() => onSaveSelection()}
         >
           <option value="" disabled>Size</option>
           {fontSizes.map((s) => (

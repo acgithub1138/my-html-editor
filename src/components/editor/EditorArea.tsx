@@ -9,6 +9,7 @@ export interface EditorAreaHandle {
   insertImageWithSize: (url: string, width: string, height: string) => void;
   isSourceMode: boolean;
   toggleSource: () => void;
+  saveSelection: () => void;
 }
 
 interface EditorAreaProps {
@@ -28,6 +29,26 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [sourceValue, setSourceValue] = useState("");
     // Stores the HTML to load into the visual editor when it remounts
     const pendingHTMLRef = useRef<string | null>(null);
+    const savedRangeRef = useRef<Range | null>(null);
+
+    const saveSelection = useCallback(() => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      }
+    }, []);
+
+    const restoreSelection = useCallback(() => {
+      const range = savedRangeRef.current;
+      if (range) {
+        editorRef.current?.focus();
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }, []);
 
     // On first mount or when switching back to visual, load content into the div
     useEffect(() => {
@@ -67,32 +88,45 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     useImperativeHandle(ref, () => ({
       isSourceMode: sourceMode,
       toggleSource,
+      saveSelection,
       execCommand: (command: string, value?: string) => {
         if (sourceMode) return;
-        editorRef.current?.focus();
+
+        // For font/size commands, restore the saved selection first (it gets lost when clicking dropdowns)
+        if (command === "fontSize" || command === "fontName" || command === "code") {
+          restoreSelection();
+        } else {
+          editorRef.current?.focus();
+        }
+
         if (command === "code") {
           const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
             const code = document.createElement("code");
             range.surroundContents(code);
           }
         } else if (command === "fontSize" && value) {
-          // Apply real pt size via span style instead of execCommand's 1-7 scale
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
             const span = document.createElement("span");
             span.style.fontSize = `${value}pt`;
-            range.surroundContents(span);
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
           }
         } else if (command === "fontName" && value) {
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
             const span = document.createElement("span");
             span.style.fontFamily = value;
-            range.surroundContents(span);
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
           }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
