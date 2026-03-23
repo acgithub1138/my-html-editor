@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import TableContextMenu from "./TableContextMenu";
-import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog, ImagePropertiesDialog } from "./TablePropertiesDialog";
+import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog, ColumnPropertiesDialog, ImagePropertiesDialog, parseDimension } from "./TablePropertiesDialog";
 
 export interface EditorAreaHandle {
   execCommand: (command: string, value?: string) => void;
