@@ -165,7 +165,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       const onMouseUp = () => {
         if (resizeRef.current) {
           resizeRef.current = null;
-          editor.style.cursor = "";
+          editor.classList.remove("cursor-col-resize", "cursor-row-resize");
           emitChange();
         }
       };
