@@ -75,14 +75,29 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     const restoreSelection = useCallback(() => {
       const range = savedRangeRef.current;
-      if (range) {
-        editorRef.current?.focus();
+      if (range && editorRef.current) {
+        editorRef.current.focus();
         const sel = window.getSelection();
         if (sel) {
           sel.removeAllRanges();
           sel.addRange(range);
         }
       }
+    }, []);
+
+    // Auto-save selection whenever it changes while editor is focused
+    useEffect(() => {
+      const onSelChange = () => {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && editorRef.current) {
+          const range = sel.getRangeAt(0);
+          if (editorRef.current.contains(range.commonAncestorContainer)) {
+            savedRangeRef.current = range.cloneRange();
+          }
+        }
+      };
+      document.addEventListener("selectionchange", onSelChange);
+      return () => document.removeEventListener("selectionchange", onSelChange);
     }, []);
 
     const emitChange = useCallback(() => {
