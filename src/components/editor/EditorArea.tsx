@@ -407,7 +407,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         }
       }
       emitChange();
-    }, [emitChange]);
+    }, [emitChange, selectedCells]);
 
     // Dialog save handlers
     const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string; borderStyle: string; borderColor: string; backgroundColor: string }) => {
