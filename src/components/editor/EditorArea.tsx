@@ -532,31 +532,75 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     };
 
     if (sourceMode) {
+      const lines = sourceValue.split("\n");
+      const lineCount = lines.length;
+      const gutterWidth = Math.max(3, String(lineCount).length) * 10 + 16;
       const highlightRef = React.createRef<HTMLDivElement>();
+      const gutterRef = React.createRef<HTMLDivElement>();
       const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
         if (highlightRef.current) {
           highlightRef.current.scrollTop = e.currentTarget.scrollTop;
           highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
         }
+        if (gutterRef.current) {
+          gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+        }
       };
+      const wrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
       return (
-        <div className="relative flex-1 overflow-hidden bg-editor-gutter">
-          <div
-            ref={highlightRef}
-            className="absolute inset-0 p-6 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden leading-[1.5]"
-            aria-hidden
-            dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
-          />
-          <textarea
-            ref={sourceRef}
-            value={sourceValue}
-            onChange={handleSourceChange}
-            onScroll={syncScroll}
-            className="relative w-full h-full min-h-full p-6 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5]"
-            spellCheck={false}
-            autoFocus
-            style={{ caretColor: "hsl(var(--foreground))" }}
-          />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Source header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-toolbar border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Source Code</span>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={wordWrap}
+                onChange={(e) => setWordWrap(e.target.checked)}
+                className="rounded border-border"
+              />
+              Word wrap
+            </label>
+          </div>
+          <div className="flex-1 flex overflow-hidden bg-editor-surface">
+            {/* Line numbers gutter */}
+            <div
+              ref={gutterRef}
+              className="flex-shrink-0 overflow-hidden bg-editor-gutter border-r border-border select-none"
+              style={{ width: gutterWidth }}
+              aria-hidden
+            >
+              <div className="py-3 font-mono text-sm leading-[1.5]">
+                {Array.from({ length: lineCount }, (_, i) => (
+                  <div
+                    key={i}
+                    className="px-2 text-right text-muted-foreground/60"
+                  >
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Editor area */}
+            <div className="relative flex-1 overflow-hidden">
+              <div
+                ref={highlightRef}
+                className={`absolute inset-0 py-3 px-4 font-mono text-sm ${wrapClass} pointer-events-none overflow-hidden leading-[1.5]`}
+                aria-hidden
+                dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
+              />
+              <textarea
+                ref={sourceRef}
+                value={sourceValue}
+                onChange={handleSourceChange}
+                onScroll={syncScroll}
+                className={`relative w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5] ${wrapClass}`}
+                spellCheck={false}
+                autoFocus
+                style={{ caretColor: "hsl(var(--foreground))" }}
+              />
+            </div>
+          </div>
         </div>
       );
     }
