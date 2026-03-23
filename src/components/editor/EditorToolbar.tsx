@@ -44,6 +44,7 @@ interface EditorToolbarProps {
   onToggleSource: () => void;
   onInsertTable: (rows: number, cols: number) => void;
   onInsertImage: (url: string, width: string, height: string) => void;
+  onSaveSelection: () => void;
 }
 
 const TablePicker = ({ onInsert, onClose }: { onInsert: (r: number, c: number) => void; onClose: () => void }) => {
