@@ -206,6 +206,22 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
         <ToolbarButton icon={<Underline size={iconSize} />} label="Underline (Ctrl+U)" onClick={() => onCommand("underline")} active={activeFormats.has("underline")} />
         <ToolbarButton icon={<Strikethrough size={iconSize} />} label="Strikethrough" onClick={() => onCommand("strikeThrough")} active={activeFormats.has("strikeThrough")} />
 
+        {/* Text Color */}
+        <ColorPickerButton
+          icon={<Paintbrush size={iconSize} />}
+          label="Text Color"
+          onColorSelect={(color) => onCommand("foreColor", color)}
+          onOpen={onSaveSelection}
+        />
+
+        {/* Cell Background Color */}
+        <ColorPickerButton
+          icon={<PaintBucket size={iconSize} />}
+          label="Cell Background"
+          onColorSelect={(color) => onCommand("cellBgColor", color)}
+          onOpen={onSaveSelection}
+        />
+
         <Separator orientation="vertical" className="h-5 mx-1" />
 
         <ToolbarButton icon={<AlignLeft size={iconSize} />} label="Align Left" onClick={() => onCommand("justifyLeft")} />
