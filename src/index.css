@@ -269,7 +269,6 @@ All colors MUST be HSL.
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
-  cursor: pointer;
 }
 
 .editor-content table.editor-table-selected {
