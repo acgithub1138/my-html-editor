@@ -581,7 +581,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       },
       insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => {
         if (sourceMode) return;
-        editorRef.current?.focus();
+        restoreSelection();
         const w = width ? (width.includes('%') ? width : `${width}px`) : '';
         const h = height ? (height.includes('%') ? height : `${height}px`) : '';
         let style = '';
