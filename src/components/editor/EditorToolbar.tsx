@@ -1,8 +1,9 @@
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
-  Quote, Code, Heading1, Heading2, Heading3, Link, Image,
-  Undo2, Redo2, Minus, AlignLeft, AlignCenter, AlignRight,
-  RemoveFormatting, Type, Table, Paintbrush, PaintBucket
+  Quote, Code, Link, Image,
+  Undo2, Redo2, AlignLeft, AlignCenter, AlignRight,
+  RemoveFormatting, Table, Paintbrush, PaintBucket,
+  Maximize2, Circle, ChevronDown
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -147,7 +148,7 @@ const ColorPickerButton = ({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center">
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -156,7 +157,7 @@ const ColorPickerButton = ({
               onOpen();
               setOpen(!open);
             }}
-            className="p-1.5 rounded transition-colors text-toolbar-foreground hover:bg-toolbar-hover"
+            className="p-1.5 rounded-l transition-colors text-toolbar-foreground hover:bg-toolbar-hover flex items-center gap-0"
             aria-label={label}
           >
             {icon}
@@ -164,6 +165,16 @@ const ColorPickerButton = ({
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">{label}</TooltipContent>
       </Tooltip>
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onOpen();
+          setOpen(!open);
+        }}
+        className="p-0.5 rounded-r transition-colors text-toolbar-foreground hover:bg-toolbar-hover"
+      >
+        <ChevronDown size={10} />
+      </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 p-2 bg-popover border border-border rounded-md shadow-lg z-50 w-[220px]">
           <div className="text-xs text-muted-foreground mb-1.5">{label}</div>
@@ -181,6 +192,39 @@ const ColorPickerButton = ({
               />
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Dropdown button with chevron for list type variants
+const DropdownButton = ({
+  icon,
+  label,
+  onClick,
+  active,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative flex items-center">
+      <ToolbarButton icon={icon} label={label} onClick={onClick} active={active} />
+      <button
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        className="p-0.5 rounded-r transition-colors text-toolbar-foreground hover:bg-toolbar-hover"
+      >
+        <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 py-1 min-w-[160px]">
+          <div onClick={() => setOpen(false)}>{children}</div>
         </div>
       )}
     </div>
@@ -219,7 +263,14 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
   return (
     <div className="bg-toolbar border-b border-border">
-      <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap">
+      {/* Row 1: B I U, undo/redo, font, size, table, text color, cell color, link, clear */}
+      <div className="flex items-center gap-0.5 px-2 py-1 flex-wrap">
+        <ToolbarButton icon={<Bold size={iconSize} />} label="Bold (Ctrl+B)" onClick={() => onCommand("bold")} active={activeFormats.has("bold")} />
+        <ToolbarButton icon={<Italic size={iconSize} />} label="Italic (Ctrl+I)" onClick={() => onCommand("italic")} active={activeFormats.has("italic")} />
+        <ToolbarButton icon={<Underline size={iconSize} />} label="Underline (Ctrl+U)" onClick={() => onCommand("underline")} active={activeFormats.has("underline")} />
+
+        <Separator orientation="vertical" className="h-5 mx-1" />
+
         <ToolbarButton icon={<Undo2 size={iconSize} />} label="Undo (Ctrl+Z)" onClick={() => onCommand("undo")} />
         <ToolbarButton icon={<Redo2 size={iconSize} />} label="Redo (Ctrl+Y)" onClick={() => onCommand("redo")} />
 
@@ -238,39 +289,48 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
           ))}
         </select>
 
-        {/* Font Size */}
+        {/* Font Size (includes H1-H3) */}
         <select
-          className={selectClass + " w-[65px]"}
+          className={selectClass + " w-[72px]"}
           onChange={(e) => {
-            if (e.target.value) {
-              // fontSize command uses 1-7 scale, so we use inline style via insertHTML instead
-              onCommand("fontSize", e.target.value);
+            const val = e.target.value;
+            if (!val) return;
+            if (val.startsWith("h")) {
+              onCommand("formatBlock", val);
+            } else {
+              onCommand("fontSize", val);
             }
+            e.target.value = "";
           }}
           defaultValue=""
           onMouseDown={() => onSaveSelection()}
         >
           <option value="" disabled>Size</option>
-          {fontSizes.map((s) => (
-            <option key={s} value={String(s)}>{s}pt</option>
-          ))}
+          <optgroup label="Headings">
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+          </optgroup>
+          <optgroup label="Font Size">
+            {fontSizes.map((s) => (
+              <option key={s} value={String(s)}>{s}pt</option>
+            ))}
+          </optgroup>
         </select>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Type size={iconSize} />} label="Paragraph" onClick={() => onCommand("formatBlock", "p")} />
-        <ToolbarButton icon={<Heading1 size={iconSize} />} label="Heading 1" onClick={() => onCommand("formatBlock", "h1")} active={activeFormats.has("h1")} />
-        <ToolbarButton icon={<Heading2 size={iconSize} />} label="Heading 2" onClick={() => onCommand("formatBlock", "h2")} active={activeFormats.has("h2")} />
-        <ToolbarButton icon={<Heading3 size={iconSize} />} label="Heading 3" onClick={() => onCommand("formatBlock", "h3")} active={activeFormats.has("h3")} />
+        {/* Table */}
+        <div className="relative">
+          <ToolbarButton icon={<Table size={iconSize} />} label="Insert Table" onClick={() => setShowTablePicker(!showTablePicker)} />
+          {showTablePicker && (
+            <TablePicker onInsert={onInsertTable} onClose={() => setShowTablePicker(false)} />
+          )}
+        </div>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Bold size={iconSize} />} label="Bold (Ctrl+B)" onClick={() => onCommand("bold")} active={activeFormats.has("bold")} />
-        <ToolbarButton icon={<Italic size={iconSize} />} label="Italic (Ctrl+I)" onClick={() => onCommand("italic")} active={activeFormats.has("italic")} />
-        <ToolbarButton icon={<Underline size={iconSize} />} label="Underline (Ctrl+U)" onClick={() => onCommand("underline")} active={activeFormats.has("underline")} />
-        <ToolbarButton icon={<Strikethrough size={iconSize} />} label="Strikethrough" onClick={() => onCommand("strikeThrough")} active={activeFormats.has("strikeThrough")} />
-
-        {/* Text Color */}
+        {/* Text Color with dropdown arrow */}
         <ColorPickerButton
           icon={<Paintbrush size={iconSize} />}
           label="Text Color"
@@ -278,12 +338,28 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
           onOpen={onSaveSelection}
         />
 
-        {/* Cell Background Color */}
+        {/* Cell Background with dropdown arrow */}
         <ColorPickerButton
           icon={<PaintBucket size={iconSize} />}
           label="Cell Background"
           onColorSelect={(color) => onCommand("cellBgColor", color)}
           onOpen={onSaveSelection}
+        />
+
+        <Separator orientation="vertical" className="h-5 mx-1" />
+
+        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLink} />
+        <ToolbarButton icon={<RemoveFormatting size={iconSize} />} label="Clear Formatting" onClick={() => onCommand("removeFormat")} />
+      </div>
+
+      {/* Row 2: image, source, alignment, lists, fullscreen, contrast */}
+      <div className="flex items-center gap-0.5 px-2 py-1 border-t border-border/50 flex-wrap">
+        <ToolbarButton icon={<Image size={iconSize} />} label="Insert Image" onClick={() => setShowImageDialog(!showImageDialog)} />
+        <ToolbarButton
+          icon={<Code size={iconSize} />}
+          label={isSourceMode ? "Visual Editor" : "HTML Source"}
+          onClick={onToggleSource}
+          active={isSourceMode}
         />
 
         <Separator orientation="vertical" className="h-5 mx-1" />
@@ -294,31 +370,37 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<List size={iconSize} />} label="Bullet List" onClick={() => onCommand("insertUnorderedList")} active={activeFormats.has("insertUnorderedList")} />
-        <ToolbarButton icon={<ListOrdered size={iconSize} />} label="Numbered List" onClick={() => onCommand("insertOrderedList")} active={activeFormats.has("insertOrderedList")} />
-        <ToolbarButton icon={<Quote size={iconSize} />} label="Blockquote" onClick={() => onCommand("formatBlock", "blockquote")} active={activeFormats.has("blockquote")} />
-        <ToolbarButton icon={<Minus size={iconSize} />} label="Horizontal Rule" onClick={() => onCommand("insertHorizontalRule")} />
+        {/* Bullet list with dropdown */}
+        <DropdownButton
+          icon={<List size={iconSize} />}
+          label="Bullet List"
+          onClick={() => onCommand("insertUnorderedList")}
+          active={activeFormats.has("insertUnorderedList")}
+        >
+          <button className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent" onMouseDown={(e) => { e.preventDefault(); onCommand("insertUnorderedList"); }}>
+            <List size={14} /> Bullet list
+          </button>
+          <button className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent" onMouseDown={(e) => { e.preventDefault(); onCommand("formatBlock", "blockquote"); }}>
+            <Quote size={14} /> Blockquote
+          </button>
+        </DropdownButton>
+
+        {/* Ordered list with dropdown */}
+        <DropdownButton
+          icon={<ListOrdered size={iconSize} />}
+          label="Numbered List"
+          onClick={() => onCommand("insertOrderedList")}
+          active={activeFormats.has("insertOrderedList")}
+        >
+          <button className="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-accent" onMouseDown={(e) => { e.preventDefault(); onCommand("insertOrderedList"); }}>
+            <ListOrdered size={14} /> Numbered list
+          </button>
+        </DropdownButton>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLink} />
-        <ToolbarButton icon={<Image size={iconSize} />} label="Insert Image" onClick={() => setShowImageDialog(!showImageDialog)} />
-        <div className="relative">
-          <ToolbarButton icon={<Table size={iconSize} />} label="Insert Table" onClick={() => setShowTablePicker(!showTablePicker)} />
-          {showTablePicker && (
-            <TablePicker onInsert={onInsertTable} onClose={() => setShowTablePicker(false)} />
-          )}
-        </div>
-        <ToolbarButton icon={<RemoveFormatting size={iconSize} />} label="Clear Formatting" onClick={() => onCommand("removeFormat")} />
-
-        <Separator orientation="vertical" className="h-5 mx-1" />
-
-        <ToolbarButton
-          icon={<Code size={iconSize} />}
-          label={isSourceMode ? "Visual Editor" : "HTML Source"}
-          onClick={onToggleSource}
-          active={isSourceMode}
-        />
+        <ToolbarButton icon={<Maximize2 size={iconSize} />} label="Fullscreen" onClick={() => {/* future */}} />
+        <ToolbarButton icon={<Circle size={iconSize} />} label="Dark/Light" onClick={() => {/* future */}} />
       </div>
 
       {showLinkInput && (
