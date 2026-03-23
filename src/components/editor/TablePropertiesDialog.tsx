@@ -45,11 +45,11 @@ const TablePropertiesDialog = ({ initial, onSave, onClose }: TablePropertiesDial
       </div>
       {tab === "general" ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Width">
-            <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} />
+          <Field label="Width" hint="e.g. 100%, 500px, 300pt">
+            <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} placeholder="e.g. 100% or 500px" />
           </Field>
-          <Field label="Height">
-            <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} />
+          <Field label="Height" hint="e.g. 200px, 50%">
+            <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} placeholder="e.g. 200px or auto" />
           </Field>
           <Field label="Cell spacing">
             <input className={inputClass} value={props.cellSpacing} onChange={(e) => setProps({ ...props, cellSpacing: e.target.value })} />
@@ -125,11 +125,11 @@ export const CellPropertiesDialog = ({ initial, onSave, onClose }: CellPropertie
   return (
     <DialogShell title="Cell Properties" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Width">
-          <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} />
+        <Field label="Width" hint="e.g. 25%, 100px, 80pt">
+          <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} placeholder="e.g. 25% or 100px" />
         </Field>
-        <Field label="Height">
-          <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} />
+        <Field label="Height" hint="e.g. 50px, 30pt">
+          <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} placeholder="e.g. 50px or auto" />
         </Field>
         <Field label="Horizontal align">
           <select className={selectClass} value={props.hAlign} onChange={(e) => setProps({ ...props, hAlign: e.target.value })}>
@@ -187,8 +187,43 @@ export const RowPropertiesDialog = ({ initial, onSave, onClose }: RowPropertiesD
             <option value="right">Right</option>
           </select>
         </Field>
-        <Field label="Height">
-          <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} />
+        <Field label="Height" hint="e.g. 40px, 30pt">
+          <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} placeholder="e.g. 40px" />
+        </Field>
+      </div>
+      <DialogButtons onSave={() => onSave(props)} onClose={onClose} />
+    </DialogShell>
+  );
+};
+
+// Column Properties
+interface ColumnProps {
+  width: string;
+  alignment: string;
+}
+
+interface ColumnPropertiesDialogProps {
+  initial: ColumnProps;
+  onSave: (props: ColumnProps) => void;
+  onClose: () => void;
+}
+
+export const ColumnPropertiesDialog = ({ initial, onSave, onClose }: ColumnPropertiesDialogProps) => {
+  const [props, setProps] = useState<ColumnProps>(initial);
+
+  return (
+    <DialogShell title="Column Properties" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Width" hint="e.g. 25%, 150px, 100pt">
+          <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} placeholder="e.g. 25% or 150px" />
+        </Field>
+        <Field label="Alignment">
+          <select className={selectClass} value={props.alignment} onChange={(e) => setProps({ ...props, alignment: e.target.value })}>
+            <option value="">None</option>
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
         </Field>
       </div>
       <DialogButtons onSave={() => onSave(props)} onClose={onClose} />
@@ -210,9 +245,12 @@ const DialogShell = ({ title, onClose, children }: { title: string; onClose: () 
   </>
 );
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
   <div>
-    <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+    <label className="block text-xs font-medium text-muted-foreground mb-1">
+      {label}
+      {hint && <span className="ml-1 text-muted-foreground/60 font-normal">({hint})</span>}
+    </label>
     {children}
   </div>
 );
@@ -261,5 +299,13 @@ export const ImagePropertiesDialog = ({ initial, onSave, onClose }: { initial: I
     </DialogShell>
   );
 };
+
+/** Parse a dimension value: if it has %, pt, px, em, rem etc keep as-is; if plain number treat as px */
+export function parseDimension(val: string): string {
+  if (!val) return "";
+  const trimmed = val.trim();
+  if (/^[\d.]+$/.test(trimmed)) return `${trimmed}px`;
+  return trimmed;
+}
 
 export default TablePropertiesDialog;
