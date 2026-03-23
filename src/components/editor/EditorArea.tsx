@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import TableContextMenu from "./TableContextMenu";
-import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog } from "./TablePropertiesDialog";
+import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog, ImagePropertiesDialog } from "./TablePropertiesDialog";
 
 export interface EditorAreaHandle {
   execCommand: (command: string, value?: string) => void;
@@ -34,13 +34,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const savedRangeRef = useRef<Range | null>(null);
 
     // Context menu state
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "table" | "image" } | null>(null);
     const contextCellRef = useRef<HTMLElement | null>(null);
     const contextRowRef = useRef<HTMLTableRowElement | null>(null);
     const contextTableRef = useRef<HTMLTableElement | null>(null);
+    const contextImageRef = useRef<HTMLImageElement | null>(null);
 
     // Property dialog state
-    const [dialog, setDialog] = useState<"table" | "cell" | "row" | null>(null);
+    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
 
     // Resize state
     const resizeRef = useRef<{
@@ -206,14 +207,23 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Context menu handler
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
+
+      // Check for image first
+      if (target.tagName === "IMG") {
+        e.preventDefault();
+        contextImageRef.current = target as HTMLImageElement;
+        setContextMenu({ x: e.clientX, y: e.clientY, type: "image" });
+        return;
+      }
+
       const cell = target.closest("td, th") as HTMLElement | null;
-      if (!cell) return; // Only show for table cells
+      if (!cell) return;
 
       e.preventDefault();
       contextCellRef.current = cell;
       contextRowRef.current = cell.closest("tr") as HTMLTableRowElement;
       contextTableRef.current = cell.closest("table") as HTMLTableElement;
-      setContextMenu({ x: e.clientX, y: e.clientY });
+      setContextMenu({ x: e.clientX, y: e.clientY, type: "table" });
     }, []);
 
     // Table context menu actions
@@ -624,12 +634,34 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           onContextMenu={handleContextMenu}
           spellCheck
         />
-        {contextMenu && (
+        {contextMenu && contextMenu.type === "table" && (
           <TableContextMenu
             position={contextMenu}
             onClose={() => setContextMenu(null)}
             onAction={handleTableAction}
           />
+        )}
+        {contextMenu && contextMenu.type === "image" && (
+          <>
+            <div className="fixed inset-0 z-[49]" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }} />
+            <div
+              className="fixed z-50 min-w-[160px] bg-popover border border-border rounded-md shadow-lg py-1"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => { setContextMenu(null); setDialog("image"); }}
+              >
+                Image properties
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => { contextImageRef.current?.remove(); setContextMenu(null); emitChange(); }}
+              >
+                Remove image
+              </button>
+            </div>
+          </>
         )}
         {dialog === "table" && (
           <TablePropertiesDialog initial={getTableProps()} onSave={handleSaveTableProps} onClose={() => setDialog(null)} />
@@ -639,6 +671,30 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         )}
         {dialog === "row" && (
           <RowPropertiesDialog initial={getRowProps()} onSave={handleSaveRowProps} onClose={() => setDialog(null)} />
+        )}
+        {dialog === "image" && contextImageRef.current && (
+          <ImagePropertiesDialog
+            initial={{
+              src: contextImageRef.current.getAttribute("src") || "",
+              alt: contextImageRef.current.getAttribute("alt") || "",
+              title: contextImageRef.current.getAttribute("title") || "",
+              width: contextImageRef.current.style.width || contextImageRef.current.getAttribute("width") || "",
+              height: contextImageRef.current.style.height || contextImageRef.current.getAttribute("height") || "",
+            }}
+            onSave={(props) => {
+              const img = contextImageRef.current;
+              if (!img) return;
+              img.setAttribute("src", props.src);
+              img.setAttribute("alt", props.alt);
+              if (props.title) img.setAttribute("title", props.title);
+              else img.removeAttribute("title");
+              img.style.width = props.width || "";
+              img.style.height = props.height || "";
+              setDialog(null);
+              emitChange();
+            }}
+            onClose={() => setDialog(null)}
+          />
         )}
       </div>
     );

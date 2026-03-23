@@ -224,4 +224,42 @@ const DialogButtons = ({ onSave, onClose }: { onSave: () => void; onClose: () =>
   </div>
 );
 
+// Image Properties
+interface ImageProps {
+  src: string;
+  alt: string;
+  title: string;
+  width: string;
+  height: string;
+}
+
+export const ImagePropertiesDialog = ({ initial, onSave, onClose }: { initial: ImageProps; onSave: (props: ImageProps) => void; onClose: () => void }) => {
+  const [props, setProps] = useState<ImageProps>(initial);
+
+  return (
+    <DialogShell title="Image Properties" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Source">
+          <input className={inputClass} value={props.src} onChange={(e) => setProps({ ...props, src: e.target.value })} />
+        </Field>
+        <Field label="Alternative description">
+          <input className={inputClass} value={props.alt} onChange={(e) => setProps({ ...props, alt: e.target.value })} />
+        </Field>
+        <Field label="Image title">
+          <input className={inputClass} value={props.title} onChange={(e) => setProps({ ...props, title: e.target.value })} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Width">
+            <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} placeholder="e.g. 300px or 50%" />
+          </Field>
+          <Field label="Height">
+            <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} placeholder="e.g. 200px or auto" />
+          </Field>
+        </div>
+      </div>
+      <DialogButtons onSave={() => onSave(props)} onClose={onClose} />
+    </DialogShell>
+  );
+};
+
 export default TablePropertiesDialog;
