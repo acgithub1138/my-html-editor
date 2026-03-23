@@ -6,6 +6,7 @@ export default defineConfig({
   dts: {
     compilerOptions: {
       jsx: "react-jsx",
+      jsxImportSource: "react",
     },
   },
   splitting: false,
