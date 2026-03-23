@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import React, { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import TableContextMenu from "./TableContextMenu";
 import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog } from "./TablePropertiesDialog";
 
