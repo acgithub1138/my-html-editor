@@ -77,6 +77,23 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             const code = document.createElement("code");
             range.surroundContents(code);
           }
+        } else if (command === "fontSize" && value) {
+          // Apply real pt size via span style instead of execCommand's 1-7 scale
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const span = document.createElement("span");
+            span.style.fontSize = `${value}pt`;
+            range.surroundContents(span);
+          }
+        } else if (command === "fontName" && value) {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const span = document.createElement("span");
+            span.style.fontFamily = value;
+            range.surroundContents(span);
+          }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
         } else if (command === "createLink" && value) {
