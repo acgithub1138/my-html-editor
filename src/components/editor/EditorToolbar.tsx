@@ -170,6 +170,7 @@ const ColorPickerButton = ({
   onOpen: () => void;
 }) => {
   const [open, setOpen] = useState(false);
+  const [customColor, setCustomColor] = useState("#000000");
 
   return (
     <div className="relative flex items-center">
@@ -215,6 +216,30 @@ const ColorPickerButton = ({
                 title={color}
               />
             ))}
+          </div>
+          <div className="mt-2 pt-2 border-t border-border flex items-center gap-2">
+            <input
+              type="color"
+              value={customColor}
+              onChange={(e) => setCustomColor(e.target.value)}
+              className="w-7 h-7 border border-border rounded cursor-pointer bg-transparent p-0"
+            />
+            <input
+              type="text"
+              value={customColor}
+              onChange={(e) => setCustomColor(e.target.value)}
+              className="flex-1 px-2 py-1 text-xs border border-border rounded bg-editor-surface text-foreground outline-none"
+              placeholder="#000000"
+            />
+            <button
+              onClick={() => {
+                onColorSelect(customColor);
+                setOpen(false);
+              }}
+              className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:opacity-90"
+            >
+              Apply
+            </button>
           </div>
         </div>
       )}
