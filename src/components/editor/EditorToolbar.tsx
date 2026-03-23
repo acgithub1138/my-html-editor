@@ -6,8 +6,8 @@ import {
   Maximize2, Minimize2, Sun, Moon, ChevronDown
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "../ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
