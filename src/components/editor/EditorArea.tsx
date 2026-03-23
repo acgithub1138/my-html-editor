@@ -207,14 +207,23 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Context menu handler
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
+
+      // Check for image first
+      if (target.tagName === "IMG") {
+        e.preventDefault();
+        contextImageRef.current = target as HTMLImageElement;
+        setContextMenu({ x: e.clientX, y: e.clientY, type: "image" });
+        return;
+      }
+
       const cell = target.closest("td, th") as HTMLElement | null;
-      if (!cell) return; // Only show for table cells
+      if (!cell) return;
 
       e.preventDefault();
       contextCellRef.current = cell;
       contextRowRef.current = cell.closest("tr") as HTMLTableRowElement;
       contextTableRef.current = cell.closest("table") as HTMLTableElement;
-      setContextMenu({ x: e.clientX, y: e.clientY });
+      setContextMenu({ x: e.clientX, y: e.clientY, type: "table" });
     }, []);
 
     // Table context menu actions
