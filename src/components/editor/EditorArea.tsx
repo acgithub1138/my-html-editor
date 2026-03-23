@@ -652,10 +652,13 @@ function escapeHtml(str: string): string {
 function highlightHTML(source: string): string {
   // Tokenize and highlight HTML source
   return source.replace(
-    /(<!--[\s\S]*?-->)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/g,
-    (match, comment, openBracket, tagName, attrs, closeBracket, entity) => {
+    /(<!--[\s\S]*?-->)|(<!DOCTYPE[^>]*>)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/gi,
+    (match, comment, doctype, openBracket, tagName, attrs, closeBracket, entity) => {
       if (comment) {
         return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
+      }
+      if (doctype) {
+        return `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(doctype)}</span>`;
       }
       if (entity) {
         return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
