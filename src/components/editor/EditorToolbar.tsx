@@ -184,7 +184,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
             }
           }}
           defaultValue=""
-          onMouseDown={(e) => e.stopPropagation()}
+          onMouseDown={() => onSaveSelection()}
         >
           <option value="" disabled>Size</option>
           {fontSizes.map((s) => (
