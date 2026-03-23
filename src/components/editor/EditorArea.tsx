@@ -823,32 +823,33 @@ function escapeHtml(str: string): string {
 }
 
 function highlightHTML(source: string): string {
-  // Tokenize and highlight HTML source
-  return source.replace(
-    /(<!--[\s\S]*?-->)|(<!DOCTYPE[^>]*>)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/gi,
+  // First escape everything, then colorize the escaped tags
+  const escaped = escapeHtml(source);
+  return escaped.replace(
+    /(&lt;!--[\s\S]*?--&gt;)|(&lt;!DOCTYPE[^&]*?&gt;)|(&lt;\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:&quot;[^&]*?&quot;|&amp;quot;[^&]*?&amp;quot;|&apos;[^&]*?&apos;|"[^"]*?"|'[^']*?'|[^\s&]*))?)*)\s*(\/?&gt;)|(&amp;\w+;)/gi,
     (match, comment, doctype, openBracket, tagName, attrs, closeBracket, entity) => {
       if (comment) {
-        return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
+        return `<span style="color:hsl(var(--syntax-comment))">${comment}</span>`;
       }
       if (doctype) {
-        return `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(doctype)}</span>`;
+        return `<span style="color:hsl(var(--syntax-tag))">${doctype}</span>`;
       }
       if (entity) {
-        return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
+        return `<span style="color:hsl(var(--syntax-entity))">${entity}</span>`;
       }
       if (tagName) {
-        let result = `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(openBracket)}${escapeHtml(tagName)}</span>`;
+        let result = `<span style="color:hsl(var(--syntax-tag))">${openBracket}${tagName}</span>`;
         if (attrs) {
           result += attrs.replace(
-            /([\w-]+)(\s*=\s*)(\"[^\"]*\"|\'[^\']*\')/g,
+            /([\w-]+)(\s*=\s*)(&quot;[^&]*?&quot;|"[^"]*?"|'[^']*?')/g,
             (_: string, attr: string, eq: string, val: string) =>
-              `<span style="color:hsl(var(--syntax-attr))">${escapeHtml(attr)}</span>${escapeHtml(eq)}<span style="color:hsl(var(--syntax-string))">${escapeHtml(val)}</span>`
+              `<span style="color:hsl(var(--syntax-attr))">${attr}</span>${eq}<span style="color:hsl(var(--syntax-string))">${val}</span>`
           );
         }
-        result += `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(closeBracket)}</span>`;
+        result += `<span style="color:hsl(var(--syntax-tag))">${closeBracket}</span>`;
         return result;
       }
-      return escapeHtml(match);
+      return match;
     }
   );
 }
