@@ -41,9 +41,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const contextImageRef = useRef<HTMLImageElement | null>(null);
 
     // Property dialog state
-    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
+    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "column" | "image" | null>(null);
     const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const [selectedTable, setSelectedTable] = useState<HTMLTableElement | null>(null);
+
+    // Multi-cell selection state
+    const [selectedCells, setSelectedCells] = useState<Set<HTMLTableCellElement>>(new Set());
+    const contextColIndexRef = useRef<number>(-1);
 
     // Undo/redo history
     const historyRef = useRef<string[]>([]);
