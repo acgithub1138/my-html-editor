@@ -42,6 +42,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     // Property dialog state
     const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
+    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
 
     // Resize state
     const resizeRef = useRef<{
@@ -497,6 +498,23 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, []);
 
+    // Image click selection
+    const handleEditorClick = useCallback((e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (selectedImage) {
+        selectedImage.classList.remove("editor-img-selected");
+      }
+      if (target.tagName === "IMG") {
+        const img = target as HTMLImageElement;
+        img.classList.add("editor-img-selected");
+        setSelectedImage(img);
+        contextImageRef.current = img;
+      } else {
+        setSelectedImage(null);
+      }
+      onSelectionChange?.();
+    }, [selectedImage, onSelectionChange]);
+
     const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
     }, []);
@@ -629,7 +647,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           suppressContentEditableWarning
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onMouseUp={onSelectionChange}
+          onMouseUp={handleEditorClick}
           onKeyUp={onSelectionChange}
           onContextMenu={handleContextMenu}
           spellCheck
@@ -650,9 +668,28 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             >
               <button
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => {
+                  const url = prompt("Enter URL:");
+                  if (url && contextImageRef.current) {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    contextImageRef.current.parentNode?.insertBefore(a, contextImageRef.current);
+                    a.appendChild(contextImageRef.current);
+                    emitChange();
+                  }
+                  setContextMenu(null);
+                }}
+              >
+                <span className="w-4 h-4 flex items-center justify-center">🔗</span>
+                Link…
+                <span className="ml-auto text-xs text-muted-foreground">Ctrl+K</span>
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
                 onClick={() => { setContextMenu(null); setDialog("image"); }}
               >
-                Image properties
+                <span className="w-4 h-4 flex items-center justify-center">🖼</span>
+                Image…
               </button>
               <button
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
