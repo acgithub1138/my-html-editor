@@ -271,6 +271,16 @@ All colors MUST be HSL.
   margin: 1rem 0;
 }
 
+.editor-content.cursor-col-resize,
+.editor-content.cursor-col-resize * {
+  cursor: col-resize !important;
+}
+
+.editor-content.cursor-row-resize,
+.editor-content.cursor-row-resize * {
+  cursor: row-resize !important;
+}
+
 .editor-content table.editor-table-selected {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
