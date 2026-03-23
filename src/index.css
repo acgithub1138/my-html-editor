@@ -104,6 +104,19 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --toolbar: 220 20% 14%;
+    --toolbar-foreground: 220 10% 80%;
+    --toolbar-active: 220 60% 55%;
+    --toolbar-active-foreground: 0 0% 100%;
+    --toolbar-hover: 220 20% 20%;
+    --editor-surface: 222 20% 8%;
+    --editor-gutter: 222 20% 10%;
+    --syntax-tag: 210 60% 60%;
+    --syntax-attr: 35 60% 60%;
+    --syntax-string: 150 50% 55%;
+    --syntax-comment: 220 10% 50%;
+    --syntax-entity: 340 55% 60%;
   }
 }
 
