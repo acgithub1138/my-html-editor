@@ -48,6 +48,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Multi-cell selection state
     const [selectedCells, setSelectedCells] = useState<Set<HTMLTableCellElement>>(new Set());
     const contextColIndexRef = useRef<number>(-1);
+    const isDraggingCellsRef = useRef(false);
+    const dragTableRef = useRef<HTMLTableElement | null>(null);
 
     // Undo/redo history
     const historyRef = useRef<string[]>([]);
@@ -222,7 +224,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       onSourceModeChange?.(newMode);
     }, [sourceMode, sourceValue, onSourceModeChange]);
 
-    // Context menu handler
+    // Context menu handler — preserve cell selection on right-click
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
 
@@ -234,13 +236,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         return;
       }
 
-      const cell = target.closest("td, th") as HTMLElement | null;
+      const cell = target.closest("td, th") as HTMLTableCellElement | null;
       if (!cell) return;
 
       e.preventDefault();
       contextCellRef.current = cell;
       contextRowRef.current = cell.closest("tr") as HTMLTableRowElement;
       contextTableRef.current = cell.closest("table") as HTMLTableElement;
+      // Don't clear selectedCells — preserve multi-cell selection for merge
       setContextMenu({ x: e.clientX, y: e.clientY, type: "table" });
     }, []);
 
@@ -478,11 +481,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         if (command === "undo") { handleUndo(); return; }
         if (command === "redo") { handleRedo(); return; }
 
-        if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
-          restoreSelection();
-        } else {
-          editorRef.current?.focus();
-        }
+        // Always restore selection so commands apply at the cursor/highlight position
+        restoreSelection();
 
         if (command === "code") {
           const selection = window.getSelection();
@@ -514,7 +514,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             selection.removeAllRanges();
           }
         } else if (command === "foreColor" && value) {
-          restoreSelection();
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
@@ -585,7 +584,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       },
       insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => {
         if (sourceMode) return;
-        editorRef.current?.focus();
+        restoreSelection();
         const w = width ? (width.includes('%') ? width : `${width}px`) : '';
         const h = height ? (height.includes('%') ? height : `${height}px`) : '';
         let style = '';
@@ -665,7 +664,65 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       setSelectedCells(new Set());
     }, [selectedCells]);
 
-    // Click selection for images, tables, and multi-cell selection
+    // Drag-based multi-cell selection
+    useEffect(() => {
+      const editor = editorRef.current;
+      if (!editor || sourceMode) return;
+
+      const onMouseDown = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const cell = target.closest("td, th") as HTMLTableCellElement | null;
+        const table = target.closest("table") as HTMLTableElement | null;
+
+        if (cell && table && editor.contains(table)) {
+          // Start drag selection
+          isDraggingCellsRef.current = true;
+          dragTableRef.current = table;
+
+          // Clear previous selection
+          selectedCells.forEach(c => c.classList.remove("editor-cell-selected"));
+          const newSet = new Set<HTMLTableCellElement>();
+          cell.classList.add("editor-cell-selected");
+          newSet.add(cell);
+          setSelectedCells(newSet);
+        }
+      };
+
+      const onMouseOver = (e: MouseEvent) => {
+        if (!isDraggingCellsRef.current || !dragTableRef.current) return;
+        const target = e.target as HTMLElement;
+        const cell = target.closest("td, th") as HTMLTableCellElement | null;
+        if (!cell || !dragTableRef.current.contains(cell)) return;
+
+        if (!cell.classList.contains("editor-cell-selected")) {
+          cell.classList.add("editor-cell-selected");
+          setSelectedCells(prev => {
+            const newSet = new Set(prev);
+            newSet.add(cell);
+            return newSet;
+          });
+        }
+      };
+
+      const onMouseUp = () => {
+        if (isDraggingCellsRef.current) {
+          isDraggingCellsRef.current = false;
+          dragTableRef.current = null;
+        }
+      };
+
+      editor.addEventListener("mousedown", onMouseDown);
+      editor.addEventListener("mouseover", onMouseOver);
+      document.addEventListener("mouseup", onMouseUp);
+
+      return () => {
+        editor.removeEventListener("mousedown", onMouseDown);
+        editor.removeEventListener("mouseover", onMouseOver);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+    }, [sourceMode, selectedCells]);
+
+    // Click selection for images and tables (mouseUp handler)
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       // Deselect previous image
@@ -687,28 +744,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       } else {
         setSelectedImage(null);
 
-        // Multi-cell selection with Ctrl/Cmd+click
-        const clickedCell = target.closest("td, th") as HTMLTableCellElement | null;
         const table = target.closest("table") as HTMLTableElement | null;
-
-        if (clickedCell && table && editorRef.current?.contains(table)) {
+        if (table && editorRef.current?.contains(table)) {
           table.classList.add("editor-table-selected");
           setSelectedTable(table);
           contextTableRef.current = table;
-
-          if (e.ctrlKey || e.metaKey) {
-            // Toggle cell selection
-            const newSet = new Set(selectedCells);
-            if (newSet.has(clickedCell)) {
-              clickedCell.classList.remove("editor-cell-selected");
-              newSet.delete(clickedCell);
-            } else {
-              clickedCell.classList.add("editor-cell-selected");
-              newSet.add(clickedCell);
-            }
-            setSelectedCells(newSet);
-          } else {
-            // Single click: clear multi-selection
+          // If only 1 cell was selected (no drag), clear the highlight
+          if (selectedCells.size <= 1) {
             clearCellSelection();
           }
         } else {
