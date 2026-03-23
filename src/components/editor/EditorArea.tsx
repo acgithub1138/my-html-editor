@@ -31,7 +31,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [sourceValue, setSourceValue] = useState("");
     const [wordWrap, setWordWrap] = useState(true);
     const pendingHTMLRef = useRef<string | null>(null);
-    const lastHTMLRef = useRef(initialContent ?? "");
     const savedRangeRef = useRef<Range | null>(null);
 
     // Context menu state
@@ -81,9 +80,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     }, []);
 
     const emitChange = useCallback(() => {
-      const html = editorRef.current?.innerHTML || "";
-      lastHTMLRef.current = html;
-      onChange?.(html);
+      onChange?.(editorRef.current?.innerHTML || "");
     }, [onChange]);
 
     // Table resize by dragging borders
@@ -188,7 +185,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         const html = pendingHTMLRef.current ?? initialContent ?? "";
         if (html) {
           editorRef.current.innerHTML = html;
-          lastHTMLRef.current = html;
           const text = editorRef.current.textContent || "";
           setIsEmpty(text.trim().length === 0);
           onChange?.(html);
@@ -212,16 +208,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const toggleSource = useCallback(() => {
       if (sourceMode) {
         pendingHTMLRef.current = sourceValue;
-        lastHTMLRef.current = sourceValue;
       } else {
-        const html = editorRef.current?.innerHTML || lastHTMLRef.current || initialContent || "";
-        lastHTMLRef.current = html;
+        const html = editorRef.current?.innerHTML || "";
         setSourceValue(formatHTML(html));
       }
       const newMode = !sourceMode;
       setSourceMode(newMode);
       onSourceModeChange?.(newMode);
-    }, [sourceMode, sourceValue, onSourceModeChange, initialContent]);
+    }, [sourceMode, sourceValue, onSourceModeChange]);
 
     // Context menu handler
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -451,9 +445,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           document.execCommand(command, false, value);
         }
         checkEmpty();
-        const html = editorRef.current?.innerHTML || "";
-        lastHTMLRef.current = html;
-        onChange?.(html);
+        onChange?.(editorRef.current?.innerHTML || "");
       },
       getHTML: () => {
         if (sourceMode) return sourceValue;
@@ -462,7 +454,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       setHTML: (html: string) => {
         if (editorRef.current) {
           editorRef.current.innerHTML = html;
-          lastHTMLRef.current = html;
           checkEmpty();
         }
         if (sourceMode) setSourceValue(html);
@@ -493,9 +484,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         }
         html += '</tbody></table><p><br></p>';
         document.execCommand("insertHTML", false, html);
-        const nextHtml = editorRef.current?.innerHTML || "";
-        lastHTMLRef.current = nextHtml;
-        onChange?.(nextHtml);
+        onChange?.(editorRef.current?.innerHTML || "");
       },
       insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => {
         if (sourceMode) return;
@@ -509,9 +498,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         const titleAttr = title ? ` title="${title}"` : '';
         const img = `<img src="${url}"${altAttr}${titleAttr}${style ? ` style="${style}"` : ''} />`;
         document.execCommand("insertHTML", false, img);
-        const nextHtml = editorRef.current?.innerHTML || "";
-        lastHTMLRef.current = nextHtml;
-        onChange?.(nextHtml);
+        onChange?.(editorRef.current?.innerHTML || "");
       },
     }));
 
@@ -537,7 +524,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       historyIndexRef.current--;
       const html = historyRef.current[historyIndexRef.current];
       if (editorRef.current) editorRef.current.innerHTML = html;
-      lastHTMLRef.current = html;
       onChange?.(html);
       checkEmpty();
       isUndoRedoRef.current = false;
@@ -549,7 +535,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       historyIndexRef.current++;
       const html = historyRef.current[historyIndexRef.current];
       if (editorRef.current) editorRef.current.innerHTML = html;
-      lastHTMLRef.current = html;
       onChange?.(html);
       checkEmpty();
       isUndoRedoRef.current = false;
@@ -557,9 +542,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     const handleInput = useCallback(() => {
       checkEmpty();
-      const html = editorRef.current?.innerHTML || "";
-      lastHTMLRef.current = html;
-      onChange?.(html);
+      onChange?.(editorRef.current?.innerHTML || "");
       pushHistory();
     }, [onChange, checkEmpty, pushHistory]);
 
@@ -656,77 +639,81 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       };
     };
 
-    const sourceLines = sourceValue.split("\n");
-    const sourceLineCount = sourceLines.length;
-    const sourceGutterWidth = Math.max(3, String(sourceLineCount).length) * 10 + 16;
-    const sourceGutterRef = React.createRef<HTMLDivElement>();
-    const syncSourceScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-      if (sourceGutterRef.current) {
-        sourceGutterRef.current.scrollTop = e.currentTarget.scrollTop;
-      }
-    };
-    const sourceWrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
-
-    return (
-      <>
-      {/* Source Code Modal */}
-      {sourceMode && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) toggleSource(); }}>
-          <div className="flex flex-col w-[90vw] max-w-4xl h-[80vh] bg-editor-surface border border-border rounded-lg shadow-2xl overflow-hidden">
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-toolbar border-b border-border">
-              <span className="text-sm font-semibold text-foreground">Source Code</span>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={wordWrap}
-                    onChange={(e) => setWordWrap(e.target.checked)}
-                    className="rounded border-border"
-                  />
-                  Word wrap
-                </label>
-                <button
-                  onClick={toggleSource}
-                  className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
-                  title="Close"
-                >
-                  ✕
-                </button>
+    if (sourceMode) {
+      const lines = sourceValue.split("\n");
+      const lineCount = lines.length;
+      const gutterWidth = Math.max(3, String(lineCount).length) * 10 + 16;
+      const highlightRef = React.createRef<HTMLDivElement>();
+      const gutterRef = React.createRef<HTMLDivElement>();
+      const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+        if (gutterRef.current) {
+          gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+        }
+      };
+      const wrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
+      return (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Source header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-toolbar border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Source Code</span>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={wordWrap}
+                onChange={(e) => setWordWrap(e.target.checked)}
+                className="rounded border-border"
+              />
+              Word wrap
+            </label>
+          </div>
+          <div className="flex-1 flex overflow-hidden bg-editor-surface">
+            {/* Line numbers gutter */}
+            <div
+              ref={gutterRef}
+              className="flex-shrink-0 overflow-hidden bg-editor-gutter border-r border-border select-none"
+              style={{ width: gutterWidth }}
+              aria-hidden
+            >
+              <div className="py-3 font-mono text-sm leading-[1.5]">
+                {Array.from({ length: lineCount }, (_, i) => (
+                  <div
+                    key={i}
+                    className="px-2 text-right text-muted-foreground/60"
+                  >
+                    {i + 1}
+                  </div>
+                ))}
               </div>
             </div>
-            {/* Source editor */}
-            <div className="flex min-w-0 flex-1 overflow-hidden">
-              {/* Line numbers gutter */}
+            {/* Editor area */}
+            <div className="relative flex-1 overflow-hidden">
               <div
-                ref={sourceGutterRef}
-                className="flex-shrink-0 overflow-hidden bg-editor-gutter border-r border-border select-none"
-                style={{ width: sourceGutterWidth }}
+                ref={highlightRef}
+                className={`absolute inset-0 py-3 px-4 font-mono text-sm ${wrapClass} pointer-events-none overflow-hidden leading-[1.5]`}
                 aria-hidden
-              >
-                <div className="py-3 font-mono text-sm leading-[1.5]">
-                  {Array.from({ length: sourceLineCount }, (_, i) => (
-                    <div key={i} className="px-2 text-right text-muted-foreground/60">
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="relative min-w-0 flex-1 overflow-hidden">
-                <textarea
-                  ref={sourceRef}
-                  value={sourceValue}
-                  onChange={handleSourceChange}
-                  onScroll={syncSourceScroll}
-                  className={`relative block w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-editor-surface text-foreground outline-none resize-none leading-[1.5] ${sourceWrapClass}`}
-                  spellCheck={false}
-                  autoFocus
-                />
-              </div>
+                dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
+              />
+              <textarea
+                ref={sourceRef}
+                value={sourceValue}
+                onChange={handleSourceChange}
+                onScroll={syncScroll}
+                className={`relative w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5] ${wrapClass}`}
+                spellCheck={false}
+                autoFocus
+                style={{ caretColor: "hsl(var(--foreground))" }}
+              />
             </div>
           </div>
         </div>
-      )}
+      );
+    }
+
+    return (
       <div className="relative flex-1 overflow-auto bg-editor-surface">
         {isEmpty && (
           <div className="absolute top-6 left-8 text-muted-foreground pointer-events-none select-none">
@@ -827,7 +814,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           />
         )}
       </div>
-      </>
     );
   }
 );
@@ -837,33 +823,32 @@ function escapeHtml(str: string): string {
 }
 
 function highlightHTML(source: string): string {
-  // First escape everything, then colorize the escaped tags
-  const escaped = escapeHtml(source);
-  return escaped.replace(
-    /(&lt;!--[\s\S]*?--&gt;)|(&lt;!DOCTYPE[\s\S]*?&gt;)|(&lt;\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:&quot;[\s\S]*?&quot;|&amp;quot;[\s\S]*?&amp;quot;|&apos;[\s\S]*?&apos;|"[^"]*?"|'[^']*?'|[^\s&]*))?)*)\s*(\/?&gt;)|(&amp;\w+;)/gi,
+  // Tokenize and highlight HTML source
+  return source.replace(
+    /(<!--[\s\S]*?-->)|(<!DOCTYPE[^>]*>)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/gi,
     (match, comment, doctype, openBracket, tagName, attrs, closeBracket, entity) => {
       if (comment) {
-        return `<span style="color:hsl(var(--syntax-comment))">${comment}</span>`;
+        return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
       }
       if (doctype) {
-        return `<span style="color:hsl(var(--syntax-tag))">${doctype}</span>`;
+        return `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(doctype)}</span>`;
       }
       if (entity) {
-        return `<span style="color:hsl(var(--syntax-entity))">${entity}</span>`;
+        return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
       }
       if (tagName) {
-        let result = `<span style="color:hsl(var(--syntax-tag))">${openBracket}${tagName}</span>`;
+        let result = `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(openBracket)}${escapeHtml(tagName)}</span>`;
         if (attrs) {
           result += attrs.replace(
-            /([\w-]+)(\s*=\s*)(&quot;[^&]*?&quot;|"[^"]*?"|'[^']*?')/g,
+            /([\w-]+)(\s*=\s*)(\"[^\"]*\"|\'[^\']*\')/g,
             (_: string, attr: string, eq: string, val: string) =>
-              `<span style="color:hsl(var(--syntax-attr))">${attr}</span>${eq}<span style="color:hsl(var(--syntax-string))">${val}</span>`
+              `<span style="color:hsl(var(--syntax-attr))">${escapeHtml(attr)}</span>${escapeHtml(eq)}<span style="color:hsl(var(--syntax-string))">${escapeHtml(val)}</span>`
           );
         }
-        result += `<span style="color:hsl(var(--syntax-tag))">${closeBracket}</span>`;
+        result += `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(closeBracket)}</span>`;
         return result;
       }
-      return match;
+      return escapeHtml(match);
     }
   );
 }
