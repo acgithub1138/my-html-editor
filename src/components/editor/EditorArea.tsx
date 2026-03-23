@@ -746,7 +746,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       return {
         width: c.style.width || "",
         height: c.style.height || "",
-        hAlign: c.getAttribute("align") || "",
+        hAlign: c.style.textAlign || c.getAttribute("align") || "",
         vAlign: c.style.verticalAlign || "",
       };
     };
@@ -762,6 +762,34 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         height: r.style.height || "",
       };
     };
+
+    const getColumnProps = () => {
+      const table = contextTableRef.current;
+      const colIdx = contextColIndexRef.current;
+      if (!table || colIdx < 0) return { width: "", alignment: "" };
+      const firstRow = table.rows[0];
+      const cell = firstRow?.cells[colIdx];
+      return {
+        width: cell?.style.width || "",
+        alignment: cell?.style.textAlign || "",
+      };
+    };
+
+    const handleSaveColumnProps = useCallback((props: { width: string; alignment: string }) => {
+      const table = contextTableRef.current;
+      const colIdx = contextColIndexRef.current;
+      if (!table || colIdx < 0) return;
+      const w = parseDimension(props.width);
+      for (const row of Array.from(table.rows)) {
+        const cell = row.cells[colIdx];
+        if (cell) {
+          cell.style.width = w;
+          cell.style.textAlign = props.alignment || "";
+        }
+      }
+      setDialog(null);
+      emitChange();
+    }, [emitChange]);
 
     const sourceLines = sourceValue.split("\n");
     const sourceLineCount = sourceLines.length;
