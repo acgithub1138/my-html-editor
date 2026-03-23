@@ -10,6 +10,8 @@ interface TableContextMenuProps {
   position: Position;
   onClose: () => void;
   onAction: (action: string) => void;
+  canMerge?: boolean;
+  canSplit?: boolean;
 }
 
 const MenuItem = ({ label, icon, onClick, disabled, hasSubmenu }: { label: string; icon?: React.ReactNode; onClick?: () => void; disabled?: boolean; hasSubmenu?: boolean }) => (
@@ -42,7 +44,7 @@ const SubMenu = ({ label, icon, children }: { label: string; icon?: React.ReactN
 
 const Divider = () => <div className="h-px bg-border my-1" />;
 
-const TableContextMenu = ({ position, onClose, onAction }: TableContextMenuProps) => {
+const TableContextMenu = ({ position, onClose, onAction, canMerge, canSplit }: TableContextMenuProps) => {
   const handle = (action: string) => {
     onAction(action);
     onClose();
@@ -59,8 +61,8 @@ const TableContextMenu = ({ position, onClose, onAction }: TableContextMenuProps
         <Divider />
         <SubMenu label="Cell" icon={<Grid3X3 size={14} />}>
           <MenuItem label="Cell properties" icon={<TableProperties size={14} />} onClick={() => handle("cellProperties")} />
-          <MenuItem label="Merge cells" icon={<MergeIcon size={14} />} onClick={() => handle("mergeCells")} disabled />
-          <MenuItem label="Split cell" icon={<SplitSquareHorizontal size={14} />} onClick={() => handle("splitCell")} disabled />
+          <MenuItem label="Merge cells" icon={<MergeIcon size={14} />} onClick={() => handle("mergeCells")} disabled={!canMerge} />
+          <MenuItem label="Split cell" icon={<SplitSquareHorizontal size={14} />} onClick={() => handle("splitCell")} disabled={!canSplit} />
         </SubMenu>
         <SubMenu label="Row" icon={<Rows3 size={14} />}>
           <MenuItem label="Insert row before" onClick={() => handle("insertRowBefore")} />
@@ -73,6 +75,8 @@ const TableContextMenu = ({ position, onClose, onAction }: TableContextMenuProps
           <MenuItem label="Insert column before" onClick={() => handle("insertColumnBefore")} />
           <MenuItem label="Insert column after" onClick={() => handle("insertColumnAfter")} />
           <MenuItem label="Delete column" onClick={() => handle("deleteColumn")} />
+          <Divider />
+          <MenuItem label="Column properties" icon={<TableProperties size={14} />} onClick={() => handle("columnProperties")} />
         </SubMenu>
         <Divider />
         <MenuItem label="Table properties" icon={<TableProperties size={14} />} onClick={() => handle("tableProperties")} />

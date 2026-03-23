@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import TableContextMenu from "./TableContextMenu";
-import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog, ImagePropertiesDialog } from "./TablePropertiesDialog";
+import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog, ColumnPropertiesDialog, ImagePropertiesDialog, parseDimension } from "./TablePropertiesDialog";
 
 export interface EditorAreaHandle {
   execCommand: (command: string, value?: string) => void;
@@ -41,9 +41,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const contextImageRef = useRef<HTMLImageElement | null>(null);
 
     // Property dialog state
-    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
+    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "column" | "image" | null>(null);
     const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const [selectedTable, setSelectedTable] = useState<HTMLTableElement | null>(null);
+
+    // Multi-cell selection state
+    const [selectedCells, setSelectedCells] = useState<Set<HTMLTableCellElement>>(new Set());
+    const contextColIndexRef = useRef<number>(-1);
 
     // Undo/redo history
     const historyRef = useRef<string[]>([]);
@@ -291,6 +295,90 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           }
           break;
         }
+        case "mergeCells": {
+          if (selectedCells.size < 2) break;
+          const cells = Array.from(selectedCells);
+          // Find bounding rectangle
+          const positions = cells.map(c => {
+            const r = c.parentElement as HTMLTableRowElement;
+            const rowIdx = Array.from(table.rows).indexOf(r);
+            const colIdx = Array.from(r.cells).indexOf(c);
+            return { cell: c, row: rowIdx, col: colIdx };
+          });
+          const minRow = Math.min(...positions.map(p => p.row));
+          const maxRow = Math.max(...positions.map(p => p.row));
+          const minCol = Math.min(...positions.map(p => p.col));
+          const maxCol = Math.max(...positions.map(p => p.col));
+          const rowSpan = maxRow - minRow + 1;
+          const colSpan = maxCol - minCol + 1;
+
+          // Collect content from all cells
+          const contents: string[] = [];
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              const tc = table.rows[r]?.cells[c];
+              if (tc && tc.innerHTML.trim() !== "&nbsp;" && tc.innerHTML.trim() !== "") {
+                contents.push(tc.innerHTML);
+              }
+            }
+          }
+
+          // Remove all cells except the top-left
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = maxCol; c >= minCol; c--) {
+              if (r === minRow && c === minCol) continue;
+              table.rows[r]?.cells[c]?.remove();
+            }
+          }
+
+          // Set spans on the top-left cell
+          const mergedCell = table.rows[minRow]?.cells[minCol];
+          if (mergedCell) {
+            if (rowSpan > 1) mergedCell.rowSpan = rowSpan;
+            if (colSpan > 1) mergedCell.colSpan = colSpan;
+            mergedCell.innerHTML = contents.length > 0 ? contents.join(" ") : "&nbsp;";
+          }
+
+          clearCellSelection();
+          break;
+        }
+        case "splitCell": {
+          if (!cell) break;
+          const rs = cell.rowSpan || 1;
+          const cs = cell.colSpan || 1;
+          if (rs <= 1 && cs <= 1) break;
+
+          const rowIdx = Array.from(table.rows).indexOf(cell.parentElement as HTMLTableRowElement);
+          const colIdx = Array.from((cell.parentElement as HTMLTableRowElement).cells).indexOf(cell);
+
+          cell.rowSpan = 1;
+          cell.colSpan = 1;
+
+          // Add missing cells in the first row
+          for (let c = 1; c < cs; c++) {
+            const td = document.createElement("td");
+            td.innerHTML = "&nbsp;";
+            td.style.border = cell.style.border;
+            td.style.padding = cell.style.padding;
+            const nextCell = cell.nextElementSibling;
+            (cell.parentElement as HTMLTableRowElement).insertBefore(td, nextCell);
+          }
+
+          // Add cells in subsequent rows
+          for (let r = 1; r < rs; r++) {
+            const targetRow = table.rows[rowIdx + r];
+            if (!targetRow) continue;
+            for (let c = 0; c < cs; c++) {
+              const td = document.createElement("td");
+              td.innerHTML = "&nbsp;";
+              td.style.border = cell.style.border;
+              td.style.padding = cell.style.padding;
+              const refCell = targetRow.cells[colIdx] || null;
+              targetRow.insertBefore(td, refCell);
+            }
+          }
+          break;
+        }
         case "deleteTable":
           table.remove();
           break;
@@ -303,6 +391,12 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         case "rowProperties":
           setDialog("row");
           return;
+        case "columnProperties": {
+          if (!cell || !row) return;
+          contextColIndexRef.current = Array.from(row.cells).indexOf(cell);
+          setDialog("column");
+          return;
+        }
         case "link": {
           const url = prompt("Enter URL:");
           if (url) {
@@ -313,14 +407,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         }
       }
       emitChange();
-    }, [emitChange]);
+    }, [emitChange, selectedCells]);
 
     // Dialog save handlers
     const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string; borderStyle: string; borderColor: string; backgroundColor: string }) => {
       const table = contextTableRef.current;
       if (!table) return;
-      table.style.width = props.width || "";
-      table.style.height = props.height || "";
+      table.style.width = parseDimension(props.width);
+      table.style.height = parseDimension(props.height);
       table.setAttribute("cellspacing", props.cellSpacing || "0");
       table.setAttribute("cellpadding", props.cellPadding || "0");
       table.setAttribute("border", props.borderWidth || "0");
@@ -336,12 +430,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const handleSaveCellProps = useCallback((props: { width: string; height: string; hAlign: string; vAlign: string }) => {
       const cell = contextCellRef.current;
       if (!cell) return;
-      cell.style.width = props.width || "";
-      cell.style.height = props.height || "";
-      if (props.hAlign) cell.setAttribute("align", props.hAlign);
-      else cell.removeAttribute("align");
+      cell.style.width = parseDimension(props.width);
+      cell.style.height = parseDimension(props.height);
+      if (props.hAlign) cell.style.textAlign = props.hAlign;
+      else cell.style.textAlign = "";
       if (props.vAlign) cell.style.verticalAlign = props.vAlign;
       else cell.style.verticalAlign = "";
+      // Remove deprecated align attribute
+      cell.removeAttribute("align");
       setDialog(null);
       emitChange();
     }, [emitChange]);
@@ -563,7 +659,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, [handleUndo, handleRedo]);
 
-    // Click selection for images and tables
+    // Clear cell selection
+    const clearCellSelection = useCallback(() => {
+      selectedCells.forEach(c => c.classList.remove("editor-cell-selected"));
+      setSelectedCells(new Set());
+    }, [selectedCells]);
+
+    // Click selection for images, tables, and multi-cell selection
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       // Deselect previous image
@@ -581,20 +683,41 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         setSelectedImage(img);
         setSelectedTable(null);
         contextImageRef.current = img;
+        clearCellSelection();
       } else {
         setSelectedImage(null);
-        // Check if clicked inside a table
+
+        // Multi-cell selection with Ctrl/Cmd+click
+        const clickedCell = target.closest("td, th") as HTMLTableCellElement | null;
         const table = target.closest("table") as HTMLTableElement | null;
-        if (table && editorRef.current?.contains(table)) {
+
+        if (clickedCell && table && editorRef.current?.contains(table)) {
           table.classList.add("editor-table-selected");
           setSelectedTable(table);
           contextTableRef.current = table;
+
+          if (e.ctrlKey || e.metaKey) {
+            // Toggle cell selection
+            const newSet = new Set(selectedCells);
+            if (newSet.has(clickedCell)) {
+              clickedCell.classList.remove("editor-cell-selected");
+              newSet.delete(clickedCell);
+            } else {
+              clickedCell.classList.add("editor-cell-selected");
+              newSet.add(clickedCell);
+            }
+            setSelectedCells(newSet);
+          } else {
+            // Single click: clear multi-selection
+            clearCellSelection();
+          }
         } else {
           setSelectedTable(null);
+          clearCellSelection();
         }
       }
       onSelectionChange?.();
-    }, [selectedImage, selectedTable, onSelectionChange]);
+    }, [selectedImage, selectedTable, onSelectionChange, selectedCells, clearCellSelection]);
 
     const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
@@ -623,7 +746,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       return {
         width: c.style.width || "",
         height: c.style.height || "",
-        hAlign: c.getAttribute("align") || "",
+        hAlign: c.style.textAlign || c.getAttribute("align") || "",
         vAlign: c.style.verticalAlign || "",
       };
     };
@@ -639,6 +762,34 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         height: r.style.height || "",
       };
     };
+
+    const getColumnProps = () => {
+      const table = contextTableRef.current;
+      const colIdx = contextColIndexRef.current;
+      if (!table || colIdx < 0) return { width: "", alignment: "" };
+      const firstRow = table.rows[0];
+      const cell = firstRow?.cells[colIdx];
+      return {
+        width: cell?.style.width || "",
+        alignment: cell?.style.textAlign || "",
+      };
+    };
+
+    const handleSaveColumnProps = useCallback((props: { width: string; alignment: string }) => {
+      const table = contextTableRef.current;
+      const colIdx = contextColIndexRef.current;
+      if (!table || colIdx < 0) return;
+      const w = parseDimension(props.width);
+      for (const row of Array.from(table.rows)) {
+        const cell = row.cells[colIdx];
+        if (cell) {
+          cell.style.width = w;
+          cell.style.textAlign = props.alignment || "";
+        }
+      }
+      setDialog(null);
+      emitChange();
+    }, [emitChange]);
 
     const sourceLines = sourceValue.split("\n");
     const sourceLineCount = sourceLines.length;
@@ -750,6 +901,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             position={contextMenu}
             onClose={() => setContextMenu(null)}
             onAction={handleTableAction}
+            canMerge={selectedCells.size >= 2}
+            canSplit={!!(contextCellRef.current && ((contextCellRef.current as HTMLTableCellElement).rowSpan > 1 || (contextCellRef.current as HTMLTableCellElement).colSpan > 1))}
           />
         )}
         {contextMenu && contextMenu.type === "image" && (
@@ -798,6 +951,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         )}
         {dialog === "cell" && (
           <CellPropertiesDialog initial={getCellProps()} onSave={handleSaveCellProps} onClose={() => setDialog(null)} />
+        )}
+        {dialog === "column" && (
+          <ColumnPropertiesDialog initial={getColumnProps()} onSave={handleSaveColumnProps} onClose={() => setDialog(null)} />
         )}
         {dialog === "row" && (
           <RowPropertiesDialog initial={getRowProps()} onSave={handleSaveRowProps} onClose={() => setDialog(null)} />

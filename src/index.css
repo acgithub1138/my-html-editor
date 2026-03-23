@@ -232,6 +232,13 @@ All colors MUST be HSL.
   box-shadow: 0 0 0 6px hsl(var(--primary) / 0.1);
 }
 
+.editor-content td.editor-cell-selected,
+.editor-content th.editor-cell-selected {
+  background-color: hsl(var(--primary) / 0.15) !important;
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+}
+
 /* Selection handles via pseudo-wrapper */
 .editor-img-wrapper {
   display: inline-block;
