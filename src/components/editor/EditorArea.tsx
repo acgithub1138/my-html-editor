@@ -493,17 +493,65 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       },
     }));
 
+    const pushHistory = useCallback(() => {
+      if (isUndoRedoRef.current) return;
+      const html = editorRef.current?.innerHTML || "";
+      const idx = historyIndexRef.current;
+      // Don't push duplicate
+      if (historyRef.current[idx] === html) return;
+      // Truncate any forward history
+      historyRef.current = historyRef.current.slice(0, idx + 1);
+      historyRef.current.push(html);
+      // Limit to MAX_HISTORY
+      if (historyRef.current.length > MAX_HISTORY) {
+        historyRef.current.shift();
+      }
+      historyIndexRef.current = historyRef.current.length - 1;
+    }, []);
+
+    const handleUndo = useCallback(() => {
+      if (historyIndexRef.current <= 0) return;
+      isUndoRedoRef.current = true;
+      historyIndexRef.current--;
+      const html = historyRef.current[historyIndexRef.current];
+      if (editorRef.current) editorRef.current.innerHTML = html;
+      onChange?.(html);
+      checkEmpty();
+      isUndoRedoRef.current = false;
+    }, [onChange, checkEmpty]);
+
+    const handleRedo = useCallback(() => {
+      if (historyIndexRef.current >= historyRef.current.length - 1) return;
+      isUndoRedoRef.current = true;
+      historyIndexRef.current++;
+      const html = historyRef.current[historyIndexRef.current];
+      if (editorRef.current) editorRef.current.innerHTML = html;
+      onChange?.(html);
+      checkEmpty();
+      isUndoRedoRef.current = false;
+    }, [onChange, checkEmpty]);
+
     const handleInput = useCallback(() => {
       checkEmpty();
       onChange?.(editorRef.current?.innerHTML || "");
-    }, [onChange, checkEmpty]);
+      pushHistory();
+    }, [onChange, checkEmpty, pushHistory]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
       if (e.key === "Tab") {
         e.preventDefault();
         document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
       }
-    }, []);
+      // Custom undo/redo
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    }, [handleUndo, handleRedo]);
 
     // Click selection for images and tables
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
