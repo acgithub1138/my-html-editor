@@ -49,8 +49,8 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
     editorRef.current?.insertTable(rows, cols);
   }, []);
 
-  const handleInsertImage = useCallback((url: string, width: string, height: string) => {
-    editorRef.current?.insertImageWithSize(url, width, height);
+  const handleInsertImage = useCallback((url: string, width: string, height: string, alt?: string, title?: string) => {
+    editorRef.current?.insertImageWithSize(url, width, height, alt, title);
   }, []);
 
   const handleSaveSelection = useCallback(() => {
