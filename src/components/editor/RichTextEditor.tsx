@@ -1,0 +1,58 @@
+import { useRef, useState, useCallback } from "react";
+import EditorToolbar from "./EditorToolbar";
+import EditorArea, { EditorAreaHandle } from "./EditorArea";
+import StatusBar from "./StatusBar";
+
+interface RichTextEditorProps {
+  initialContent?: string;
+  onChange?: (html: string) => void;
+}
+
+const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
+  const editorRef = useRef<EditorAreaHandle>(null);
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+
+  const updateCounts = useCallback((html: string) => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const text = div.textContent || "";
+    setCharCount(text.length);
+    setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+  }, []);
+
+  const handleCommand = useCallback((command: string, value?: string) => {
+    editorRef.current?.execCommand(command, value);
+    // Update active formats after command
+    setTimeout(() => {
+      const formats = editorRef.current?.getActiveFormats() || new Set();
+      setActiveFormats(formats);
+    }, 10);
+  }, []);
+
+  const handleSelectionChange = useCallback(() => {
+    const formats = editorRef.current?.getActiveFormats() || new Set();
+    setActiveFormats(formats);
+  }, []);
+
+  const handleChange = useCallback((html: string) => {
+    updateCounts(html);
+    onChange?.(html);
+  }, [onChange, updateCounts]);
+
+  return (
+    <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface">
+      <EditorToolbar onCommand={handleCommand} activeFormats={activeFormats} />
+      <EditorArea
+        ref={editorRef}
+        onChange={handleChange}
+        onSelectionChange={handleSelectionChange}
+        initialContent={initialContent}
+      />
+      <StatusBar wordCount={wordCount} charCount={charCount} />
+    </div>
+  );
+};
+
+export default RichTextEditor;
