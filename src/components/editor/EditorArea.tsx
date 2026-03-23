@@ -505,22 +505,38 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, []);
 
-    // Image click selection
+    // Click selection for images and tables
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
+      // Deselect previous image
       if (selectedImage) {
         selectedImage.classList.remove("editor-img-selected");
       }
+      // Deselect previous table
+      if (selectedTable) {
+        selectedTable.classList.remove("editor-table-selected");
+      }
+
       if (target.tagName === "IMG") {
         const img = target as HTMLImageElement;
         img.classList.add("editor-img-selected");
         setSelectedImage(img);
+        setSelectedTable(null);
         contextImageRef.current = img;
       } else {
         setSelectedImage(null);
+        // Check if clicked inside a table
+        const table = target.closest("table") as HTMLTableElement | null;
+        if (table && editorRef.current?.contains(table)) {
+          table.classList.add("editor-table-selected");
+          setSelectedTable(table);
+          contextTableRef.current = table;
+        } else {
+          setSelectedTable(null);
+        }
       }
       onSelectionChange?.();
-    }, [selectedImage, onSelectionChange]);
+    }, [selectedImage, selectedTable, onSelectionChange]);
 
     const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
