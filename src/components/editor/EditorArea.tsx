@@ -643,13 +643,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       const lines = sourceValue.split("\n");
       const lineCount = lines.length;
       const gutterWidth = Math.max(3, String(lineCount).length) * 10 + 16;
-      const highlightRef = React.createRef<HTMLDivElement>();
       const gutterRef = React.createRef<HTMLDivElement>();
       const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        if (highlightRef.current) {
-          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
-          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
-        }
         if (gutterRef.current) {
           gutterRef.current.scrollTop = e.currentTarget.scrollTop;
         }
