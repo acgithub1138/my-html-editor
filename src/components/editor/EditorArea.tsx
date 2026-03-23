@@ -34,10 +34,11 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const savedRangeRef = useRef<Range | null>(null);
 
     // Context menu state
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: "table" | "image" } | null>(null);
     const contextCellRef = useRef<HTMLElement | null>(null);
     const contextRowRef = useRef<HTMLTableRowElement | null>(null);
     const contextTableRef = useRef<HTMLTableElement | null>(null);
+    const contextImageRef = useRef<HTMLImageElement | null>(null);
 
     // Property dialog state
     const [dialog, setDialog] = useState<"table" | "cell" | "row" | null>(null);
