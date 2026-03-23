@@ -515,6 +515,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       onSelectionChange?.();
     }, [selectedImage, onSelectionChange]);
 
+    const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
     }, []);
 
