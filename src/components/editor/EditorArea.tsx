@@ -188,6 +188,11 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           const text = editorRef.current.textContent || "";
           setIsEmpty(text.trim().length === 0);
           onChange?.(html);
+          // Seed undo history
+          if (historyRef.current.length === 0) {
+            historyRef.current.push(html);
+            historyIndexRef.current = 0;
+          }
         }
         pendingHTMLRef.current = null;
       }
