@@ -643,13 +643,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       const lines = sourceValue.split("\n");
       const lineCount = lines.length;
       const gutterWidth = Math.max(3, String(lineCount).length) * 10 + 16;
-      const highlightRef = React.createRef<HTMLDivElement>();
       const gutterRef = React.createRef<HTMLDivElement>();
       const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        if (highlightRef.current) {
-          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
-          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
-        }
         if (gutterRef.current) {
           gutterRef.current.scrollTop = e.currentTarget.scrollTop;
         }
@@ -689,23 +684,15 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
                 ))}
               </div>
             </div>
-            {/* Editor area */}
             <div className="relative flex-1 overflow-hidden">
-              <div
-                ref={highlightRef}
-                className={`absolute inset-0 py-3 px-4 font-mono text-sm ${wrapClass} pointer-events-none overflow-hidden leading-[1.5]`}
-                aria-hidden
-                dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
-              />
               <textarea
                 ref={sourceRef}
                 value={sourceValue}
                 onChange={handleSourceChange}
                 onScroll={syncScroll}
-                className={`relative w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5] ${wrapClass}`}
+                className={`relative block w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-editor-surface text-foreground outline-none resize-none leading-[1.5] ${wrapClass}`}
                 spellCheck={false}
                 autoFocus
-                style={{ caretColor: "hsl(var(--foreground))" }}
               />
             </div>
           </div>
