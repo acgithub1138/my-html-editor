@@ -53,6 +53,10 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
     editorRef.current?.insertImageWithSize(url, width, height);
   }, []);
 
+  const handleSaveSelection = useCallback(() => {
+    editorRef.current?.saveSelection();
+  }, []);
+
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface">
       <EditorToolbar
@@ -62,6 +66,7 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
         onToggleSource={handleToggleSource}
         onInsertTable={handleInsertTable}
         onInsertImage={handleInsertImage}
+        onSaveSelection={handleSaveSelection}
       />
       <EditorArea
         ref={editorRef}
