@@ -630,7 +630,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           suppressContentEditableWarning
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onMouseUp={onSelectionChange}
+          onMouseUp={handleEditorClick}
           onKeyUp={onSelectionChange}
           onContextMenu={handleContextMenu}
           spellCheck
@@ -651,9 +651,28 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             >
               <button
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => {
+                  const url = prompt("Enter URL:");
+                  if (url && contextImageRef.current) {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    contextImageRef.current.parentNode?.insertBefore(a, contextImageRef.current);
+                    a.appendChild(contextImageRef.current);
+                    emitChange();
+                  }
+                  setContextMenu(null);
+                }}
+              >
+                <span className="w-4 h-4 flex items-center justify-center">🔗</span>
+                Link…
+                <span className="ml-auto text-xs text-muted-foreground">Ctrl+K</span>
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
                 onClick={() => { setContextMenu(null); setDialog("image"); }}
               >
-                Image properties
+                <span className="w-4 h-4 flex items-center justify-center">🖼</span>
+                Image…
               </button>
               <button
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
