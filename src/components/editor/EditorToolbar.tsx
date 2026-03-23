@@ -288,24 +288,95 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkTarget, setLinkTarget] = useState("");
+  const [linkUrlError, setLinkUrlError] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return false;
+    try {
+      // Allow relative URLs starting with / or #
+      if (url.startsWith("/") || url.startsWith("#") || url.startsWith("mailto:") || url.startsWith("tel:")) return true;
+      new URL(url);
+      return true;
+    } catch {
+      // Try with https:// prefix
+      try {
+        new URL("https://" + url);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const handleLinkOpen = useCallback(() => {
     onSaveSelection();
-    setLinkUrl("");
-    setLinkText("");
+    const sel = window.getSelection();
+    const selectedText = sel && !sel.isCollapsed ? sel.toString() : "";
+
+    // Check if selection is inside an existing link
+    let existingUrl = "";
+    let existingTitle = "";
+    let existingTarget = "";
+    if (sel && sel.rangeCount > 0) {
+      const node = sel.anchorNode;
+      const anchor = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("a") as HTMLAnchorElement | null;
+      if (anchor) {
+        existingUrl = anchor.href || "";
+        existingTitle = anchor.title || "";
+        existingTarget = anchor.target || "";
+      }
+    }
+
+    setLinkUrl(existingUrl);
+    setLinkText(selectedText);
+    setLinkTitle(existingTitle);
+    setLinkTarget(existingTarget);
+    setLinkUrlError("");
     setShowLinkDialog(true);
   }, [onSaveSelection]);
 
   const handleLinkInsert = useCallback(() => {
-    if (linkUrl) {
-      onCommand("createLink", linkUrl);
+    if (!linkUrl.trim()) {
+      setLinkUrlError("URL is required");
+      return;
     }
+    if (!isValidUrl(linkUrl)) {
+      setLinkUrlError("Please enter a valid URL");
+      return;
+    }
+
+    // Normalize URL — add https:// if no protocol
+    let finalUrl = linkUrl.trim();
+    if (!/^(https?:\/\/|mailto:|tel:|\/|#)/.test(finalUrl)) {
+      finalUrl = "https://" + finalUrl;
+    }
+
+    onCommand("createLink", finalUrl);
+
+    // After creating the link, set title and target on the <a> element
+    setTimeout(() => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const node = sel.anchorNode;
+        const anchor = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("a") as HTMLAnchorElement | null;
+        if (anchor) {
+          if (linkTitle) anchor.title = linkTitle;
+          if (linkTarget) anchor.target = linkTarget;
+        }
+      }
+    }, 0);
+
     setShowLinkDialog(false);
     setLinkUrl("");
     setLinkText("");
-  }, [linkUrl, onCommand]);
+    setLinkTitle("");
+    setLinkTarget("");
+    setLinkUrlError("");
+  }, [linkUrl, linkTitle, linkTarget, onCommand]);
 
   const iconSize = 16;
 
@@ -464,9 +535,9 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
       {showLinkDialog && (
         <>
           <div className="fixed inset-0 bg-black/30 z-[70]" onClick={() => setShowLinkDialog(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-popover border border-border rounded-lg shadow-xl w-[400px] max-w-[90vw]">
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-popover border border-border rounded-lg shadow-xl w-[420px] max-w-[90vw]">
             <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-              <h3 className="text-base font-semibold text-foreground">Insert Link</h3>
+              <h3 className="text-base font-semibold text-foreground">Insert/Edit Link</h3>
               <button onClick={() => setShowLinkDialog(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
             </div>
             <div className="px-5 py-4 space-y-3">
@@ -476,16 +547,52 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
                   type="url"
                   placeholder="https://example.com"
                   value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onChange={(e) => { setLinkUrl(e.target.value); setLinkUrlError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleLinkInsert()}
-                  className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+                  className={`w-full px-2 py-1.5 text-sm border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring ${
+                    linkUrlError ? "border-destructive" : "border-border"
+                  }`}
                   autoFocus
                 />
+                {linkUrlError && <p className="text-xs text-destructive mt-1">{linkUrlError}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Text to display</label>
+                <input
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Link text"
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Title</label>
+                <input
+                  value={linkTitle}
+                  onChange={(e) => setLinkTitle(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Tooltip text"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Open link in…</label>
+                <select
+                  value={linkTarget}
+                  onChange={(e) => setLinkTarget(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                >
+                  <option value="">None (Use Implicit)</option>
+                  <option value="_blank">New window (_blank)</option>
+                  <option value="_self">Same window (_self)</option>
+                  <option value="_parent">Parent frame (_parent)</option>
+                  <option value="_top">Top frame (_top)</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
               <button onClick={() => setShowLinkDialog(false)} className="px-4 py-1.5 text-sm rounded border border-border text-foreground hover:bg-accent transition-colors">Cancel</button>
-              <button onClick={handleLinkInsert} className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity">Insert</button>
+              <button onClick={handleLinkInsert} className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity">Save</button>
             </div>
           </div>
         </>
