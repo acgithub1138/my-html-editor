@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from "react";
+import { TooltipProvider } from "../ui/tooltip";
 import EditorToolbar from "./EditorToolbar";
 import EditorArea, { EditorAreaHandle } from "./EditorArea";
 import StatusBar from "./StatusBar";
