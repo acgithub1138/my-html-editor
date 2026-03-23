@@ -478,11 +478,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         if (command === "undo") { handleUndo(); return; }
         if (command === "redo") { handleRedo(); return; }
 
-        if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
-          restoreSelection();
-        } else {
-          editorRef.current?.focus();
-        }
+        // Always restore selection so commands apply at the cursor/highlight position
+        restoreSelection();
 
         if (command === "code") {
           const selection = window.getSelection();
@@ -514,7 +511,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             selection.removeAllRanges();
           }
         } else if (command === "foreColor" && value) {
-          restoreSelection();
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
