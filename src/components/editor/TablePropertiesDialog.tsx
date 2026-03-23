@@ -7,6 +7,9 @@ interface TableProps {
   cellPadding: string;
   borderWidth: string;
   alignment: string;
+  borderStyle: string;
+  borderColor: string;
+  backgroundColor: string;
 }
 
 interface TablePropertiesDialogProps {
@@ -17,37 +20,86 @@ interface TablePropertiesDialogProps {
 
 const inputClass = "w-full px-2 py-1.5 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring";
 const selectClass = "w-full px-2 py-1.5 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring";
+const colorInputClass = "w-8 h-8 border border-border rounded cursor-pointer bg-editor-surface";
+
+const TabButton = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-1 text-sm font-medium rounded-t transition-colors ${
+      active ? "border border-b-0 border-primary text-primary bg-popover" : "text-muted-foreground hover:text-foreground"
+    }`}
+  >
+    {label}
+  </button>
+);
 
 const TablePropertiesDialog = ({ initial, onSave, onClose }: TablePropertiesDialogProps) => {
   const [props, setProps] = useState<TableProps>(initial);
+  const [tab, setTab] = useState<"general" | "advanced">("general");
 
   return (
     <DialogShell title="Table Properties" onClose={onClose}>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Width">
-          <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} />
-        </Field>
-        <Field label="Height">
-          <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} />
-        </Field>
-        <Field label="Cell spacing">
-          <input className={inputClass} value={props.cellSpacing} onChange={(e) => setProps({ ...props, cellSpacing: e.target.value })} />
-        </Field>
-        <Field label="Cell padding">
-          <input className={inputClass} value={props.cellPadding} onChange={(e) => setProps({ ...props, cellPadding: e.target.value })} />
-        </Field>
-        <Field label="Border width">
-          <input className={inputClass} value={props.borderWidth} onChange={(e) => setProps({ ...props, borderWidth: e.target.value })} />
-        </Field>
-        <Field label="Alignment">
-          <select className={selectClass} value={props.alignment} onChange={(e) => setProps({ ...props, alignment: e.target.value })}>
-            <option value="">None</option>
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
-        </Field>
+      <div className="flex gap-1 mb-3">
+        <TabButton label="General" active={tab === "general"} onClick={() => setTab("general")} />
+        <TabButton label="Advanced" active={tab === "advanced"} onClick={() => setTab("advanced")} />
       </div>
+      {tab === "general" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Width">
+            <input className={inputClass} value={props.width} onChange={(e) => setProps({ ...props, width: e.target.value })} />
+          </Field>
+          <Field label="Height">
+            <input className={inputClass} value={props.height} onChange={(e) => setProps({ ...props, height: e.target.value })} />
+          </Field>
+          <Field label="Cell spacing">
+            <input className={inputClass} value={props.cellSpacing} onChange={(e) => setProps({ ...props, cellSpacing: e.target.value })} />
+          </Field>
+          <Field label="Cell padding">
+            <input className={inputClass} value={props.cellPadding} onChange={(e) => setProps({ ...props, cellPadding: e.target.value })} />
+          </Field>
+          <Field label="Border width">
+            <input className={inputClass} value={props.borderWidth} onChange={(e) => setProps({ ...props, borderWidth: e.target.value })} />
+          </Field>
+          <Field label="Alignment">
+            <select className={selectClass} value={props.alignment} onChange={(e) => setProps({ ...props, alignment: e.target.value })}>
+              <option value="">None</option>
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </Field>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Field label="Border style">
+            <select className={selectClass} value={props.borderStyle} onChange={(e) => setProps({ ...props, borderStyle: e.target.value })}>
+              <option value="">Select...</option>
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double</option>
+              <option value="groove">Groove</option>
+              <option value="ridge">Ridge</option>
+              <option value="inset">Inset</option>
+              <option value="outset">Outset</option>
+              <option value="none">None</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </Field>
+          <Field label="Border color">
+            <div className="flex items-center gap-2">
+              <input type="color" className={colorInputClass} value={props.borderColor || "#000000"} onChange={(e) => setProps({ ...props, borderColor: e.target.value })} />
+              <input className={inputClass} value={props.borderColor} onChange={(e) => setProps({ ...props, borderColor: e.target.value })} placeholder="#000000" />
+            </div>
+          </Field>
+          <Field label="Background color">
+            <div className="flex items-center gap-2">
+              <input type="color" className={colorInputClass} value={props.backgroundColor || "#ffffff"} onChange={(e) => setProps({ ...props, backgroundColor: e.target.value })} />
+              <input className={inputClass} value={props.backgroundColor} onChange={(e) => setProps({ ...props, backgroundColor: e.target.value })} placeholder="#ffffff" />
+            </div>
+          </Field>
+        </div>
+      )}
       <DialogButtons onSave={() => onSave(props)} onClose={onClose} />
     </DialogShell>
   );
