@@ -3,7 +3,7 @@ import EditorToolbar from "./EditorToolbar";
 import EditorArea, { EditorAreaHandle } from "./EditorArea";
 import StatusBar from "./StatusBar";
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   initialContent?: string;
   onChange?: (html: string) => void;
 }
