@@ -48,6 +48,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Multi-cell selection state
     const [selectedCells, setSelectedCells] = useState<Set<HTMLTableCellElement>>(new Set());
     const contextColIndexRef = useRef<number>(-1);
+    const isDraggingCellsRef = useRef(false);
+    const dragTableRef = useRef<HTMLTableElement | null>(null);
 
     // Undo/redo history
     const historyRef = useRef<string[]>([]);
