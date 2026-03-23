@@ -372,6 +372,10 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       execCommand: (command: string, value?: string) => {
         if (sourceMode) return;
 
+        // Intercept undo/redo to use custom history
+        if (command === "undo") { handleUndo(); return; }
+        if (command === "redo") { handleRedo(); return; }
+
         if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
           restoreSelection();
         } else {
