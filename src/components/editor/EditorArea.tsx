@@ -657,7 +657,9 @@ function highlightHTML(source: string): string {
       if (comment) {
         return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
       }
-      if (entity) {
+      if (doctype) {
+        return `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(doctype)}</span>`;
+      }
         return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
       }
       if (tagName) {
