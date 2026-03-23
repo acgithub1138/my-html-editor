@@ -26,13 +26,22 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [isEmpty, setIsEmpty] = useState(true);
     const [sourceMode, setSourceMode] = useState(false);
     const [sourceValue, setSourceValue] = useState("");
+    // Stores the HTML to load into the visual editor when it remounts
+    const pendingHTMLRef = useRef<string | null>(null);
 
+    // On first mount or when switching back to visual, load content into the div
     useEffect(() => {
-      if (editorRef.current && initialContent) {
-        editorRef.current.innerHTML = initialContent;
-        setIsEmpty(false);
+      if (!sourceMode && editorRef.current) {
+        const html = pendingHTMLRef.current ?? initialContent ?? "";
+        if (html) {
+          editorRef.current.innerHTML = html;
+          const text = editorRef.current.textContent || "";
+          setIsEmpty(text.trim().length === 0);
+          onChange?.(html);
+        }
+        pendingHTMLRef.current = null;
       }
-    }, []);
+    }, [sourceMode]); // intentionally only depends on sourceMode
 
     const checkEmpty = useCallback(() => {
       if (editorRef.current) {
@@ -43,22 +52,17 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     const toggleSource = useCallback(() => {
       if (sourceMode) {
-        // Switching back to visual: apply source HTML
-        if (editorRef.current) {
-          editorRef.current.innerHTML = sourceValue;
-          checkEmpty();
-          onChange?.(sourceValue);
-        }
+        // Switching back to visual — stash edited HTML so the useEffect above picks it up
+        pendingHTMLRef.current = sourceValue;
       } else {
-        // Switching to source: grab current HTML
+        // Switching to source — grab current visual HTML
         const html = editorRef.current?.innerHTML || "";
-        // Pretty-format the HTML
         setSourceValue(formatHTML(html));
       }
       const newMode = !sourceMode;
       setSourceMode(newMode);
       onSourceModeChange?.(newMode);
-    }, [sourceMode, sourceValue, onChange, checkEmpty, onSourceModeChange]);
+    }, [sourceMode, sourceValue, onSourceModeChange]);
 
     useImperativeHandle(ref, () => ({
       isSourceMode: sourceMode,
@@ -199,7 +203,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 );
 
 function formatHTML(html: string): string {
-  // Simple HTML formatter
   let formatted = '';
   let indent = 0;
   const tokens = html.replace(/>\s*</g, '>\n<').split('\n');
@@ -211,7 +214,6 @@ function formatHTML(html: string): string {
     }
     formatted += '  '.repeat(indent) + trimmed + '\n';
     if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('</')) {
-      // Check if it's not a void element
       const tag = trimmed.match(/^<(\w+)/)?.[1]?.toLowerCase();
       const voidTags = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
       if (tag && !voidTags.includes(tag)) {
