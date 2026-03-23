@@ -1,9 +1,10 @@
 import { useRef, useState, useCallback } from "react";
+import { TooltipProvider } from "../ui/tooltip";
 import EditorToolbar from "./EditorToolbar";
 import EditorArea, { EditorAreaHandle } from "./EditorArea";
 import StatusBar from "./StatusBar";
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   initialContent?: string;
   onChange?: (html: string) => void;
 }
@@ -69,34 +70,36 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className={`flex flex-col border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface ${
-        isFullscreen ? "fixed inset-0 z-[100] rounded-none" : "h-full"
-      } ${isDark ? "dark" : ""}`}
-    >
-      <EditorToolbar
-        onCommand={handleCommand}
-        activeFormats={activeFormats}
-        isSourceMode={isSourceMode}
-        onToggleSource={handleToggleSource}
-        onInsertTable={handleInsertTable}
-        onInsertImage={handleInsertImage}
-        onSaveSelection={handleSaveSelection}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={handleToggleFullscreen}
-        isDark={isDark}
-        onToggleDark={handleToggleDark}
-      />
-      <EditorArea
-        ref={editorRef}
-        onChange={handleChange}
-        onSelectionChange={handleSelectionChange}
-        initialContent={initialContent}
-        onSourceModeChange={setIsSourceMode}
-      />
-      <StatusBar wordCount={wordCount} charCount={charCount} isSourceMode={isSourceMode} />
-    </div>
+    <TooltipProvider>
+      <div
+        ref={containerRef}
+        className={`flex flex-col border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface ${
+          isFullscreen ? "fixed inset-0 z-[100] rounded-none" : "h-full"
+        } ${isDark ? "dark" : ""}`}
+      >
+        <EditorToolbar
+          onCommand={handleCommand}
+          activeFormats={activeFormats}
+          isSourceMode={isSourceMode}
+          onToggleSource={handleToggleSource}
+          onInsertTable={handleInsertTable}
+          onInsertImage={handleInsertImage}
+          onSaveSelection={handleSaveSelection}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
+          isDark={isDark}
+          onToggleDark={handleToggleDark}
+        />
+        <EditorArea
+          ref={editorRef}
+          onChange={handleChange}
+          onSelectionChange={handleSelectionChange}
+          initialContent={initialContent}
+          onSourceModeChange={setIsSourceMode}
+        />
+        <StatusBar wordCount={wordCount} charCount={charCount} isSourceMode={isSourceMode} />
+      </div>
+    </TooltipProvider>
   );
 };
 
