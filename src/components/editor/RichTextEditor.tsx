@@ -10,10 +10,13 @@ interface RichTextEditorProps {
 
 const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const editorRef = useRef<EditorAreaHandle>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [isSourceMode, setIsSourceMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const updateCounts = useCallback((html: string) => {
     const div = document.createElement("div");
@@ -57,8 +60,21 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
     editorRef.current?.saveSelection();
   }, []);
 
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  const handleToggleDark = useCallback(() => {
+    setIsDark((prev) => !prev);
+  }, []);
+
   return (
-    <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface">
+    <div
+      ref={containerRef}
+      className={`flex flex-col border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface ${
+        isFullscreen ? "fixed inset-0 z-[100] rounded-none" : "h-full"
+      } ${isDark ? "dark" : ""}`}
+    >
       <EditorToolbar
         onCommand={handleCommand}
         activeFormats={activeFormats}
@@ -67,6 +83,10 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
         onInsertTable={handleInsertTable}
         onInsertImage={handleInsertImage}
         onSaveSelection={handleSaveSelection}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
+        isDark={isDark}
+        onToggleDark={handleToggleDark}
       />
       <EditorArea
         ref={editorRef}

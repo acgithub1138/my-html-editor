@@ -3,7 +3,7 @@ import {
   Quote, Code, Link, Image,
   Undo2, Redo2, AlignLeft, AlignCenter, AlignRight,
   RemoveFormatting, Table, Paintbrush, PaintBucket,
-  Maximize2, Circle, ChevronDown
+  Maximize2, Minimize2, Sun, Moon, ChevronDown
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -46,6 +46,10 @@ interface EditorToolbarProps {
   onInsertTable: (rows: number, cols: number) => void;
   onInsertImage: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   onSaveSelection: () => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  isDark: boolean;
+  onToggleDark: () => void;
 }
 
 const TablePicker = ({ onInsert, onClose }: { onInsert: (r: number, c: number) => void; onClose: () => void }) => {
@@ -280,7 +284,7 @@ const DropdownButton = ({
   );
 };
 
-const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection }: EditorToolbarProps) => {
+const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection, isFullscreen, onToggleFullscreen, isDark, onToggleDark }: EditorToolbarProps) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
@@ -448,8 +452,8 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Maximize2 size={iconSize} />} label="Fullscreen" onClick={() => {/* future */}} />
-        <ToolbarButton icon={<Circle size={iconSize} />} label="Dark/Light" onClick={() => {/* future */}} />
+        <ToolbarButton icon={isFullscreen ? <Minimize2 size={iconSize} /> : <Maximize2 size={iconSize} />} label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} onClick={onToggleFullscreen} active={isFullscreen} />
+        <ToolbarButton icon={isDark ? <Sun size={iconSize} /> : <Moon size={iconSize} />} label={isDark ? "Light Mode" : "Dark Mode"} onClick={onToggleDark} />
       </div>
 
       {showLinkInput && (
