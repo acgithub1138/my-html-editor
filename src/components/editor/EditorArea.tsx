@@ -41,7 +41,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const contextImageRef = useRef<HTMLImageElement | null>(null);
 
     // Property dialog state
-    const [dialog, setDialog] = useState<"table" | "cell" | "row" | null>(null);
+    const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
 
     // Resize state
     const resizeRef = useRef<{
