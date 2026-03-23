@@ -827,6 +827,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           />
         )}
       </div>
+      </>
     );
   }
 );
