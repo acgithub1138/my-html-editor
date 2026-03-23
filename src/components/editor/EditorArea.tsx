@@ -135,9 +135,10 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         // Update cursor on hover
         const target = getResizeTarget(e);
         if (target && !resizeRef.current) {
-          editor.style.cursor = target.type === "col" ? "col-resize" : "row-resize";
+          editor.classList.remove("cursor-col-resize", "cursor-row-resize");
+          editor.classList.add(target.type === "col" ? "cursor-col-resize" : "cursor-row-resize");
         } else if (!resizeRef.current) {
-          editor.style.cursor = "";
+          editor.classList.remove("cursor-col-resize", "cursor-row-resize");
         }
 
         if (!resizeRef.current) return;
@@ -164,7 +165,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       const onMouseUp = () => {
         if (resizeRef.current) {
           resizeRef.current = null;
-          editor.style.cursor = "";
+          editor.classList.remove("cursor-col-resize", "cursor-row-resize");
           emitChange();
         }
       };
