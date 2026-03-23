@@ -413,8 +413,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string; borderStyle: string; borderColor: string; backgroundColor: string }) => {
       const table = contextTableRef.current;
       if (!table) return;
-      table.style.width = props.width || "";
-      table.style.height = props.height || "";
+      table.style.width = parseDimension(props.width);
+      table.style.height = parseDimension(props.height);
       table.setAttribute("cellspacing", props.cellSpacing || "0");
       table.setAttribute("cellpadding", props.cellPadding || "0");
       table.setAttribute("border", props.borderWidth || "0");
@@ -430,12 +430,14 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const handleSaveCellProps = useCallback((props: { width: string; height: string; hAlign: string; vAlign: string }) => {
       const cell = contextCellRef.current;
       if (!cell) return;
-      cell.style.width = props.width || "";
-      cell.style.height = props.height || "";
-      if (props.hAlign) cell.setAttribute("align", props.hAlign);
-      else cell.removeAttribute("align");
+      cell.style.width = parseDimension(props.width);
+      cell.style.height = parseDimension(props.height);
+      if (props.hAlign) cell.style.textAlign = props.hAlign;
+      else cell.style.textAlign = "";
       if (props.vAlign) cell.style.verticalAlign = props.vAlign;
       else cell.style.verticalAlign = "";
+      // Remove deprecated align attribute
+      cell.removeAttribute("align");
       setDialog(null);
       emitChange();
     }, [emitChange]);
