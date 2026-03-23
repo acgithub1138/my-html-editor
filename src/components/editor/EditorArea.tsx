@@ -498,7 +498,23 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, []);
 
-    const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Image click selection
+    const handleEditorClick = useCallback((e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (selectedImage) {
+        selectedImage.classList.remove("editor-img-selected");
+      }
+      if (target.tagName === "IMG") {
+        const img = target as HTMLImageElement;
+        img.classList.add("editor-img-selected");
+        setSelectedImage(img);
+        contextImageRef.current = img;
+      } else {
+        setSelectedImage(null);
+      }
+      onSelectionChange?.();
+    }, [selectedImage, onSelectionChange]);
+
       setSourceValue(e.target.value);
     }, []);
 
