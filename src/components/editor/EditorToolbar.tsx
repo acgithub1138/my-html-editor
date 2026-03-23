@@ -2,7 +2,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Quote, Code, Heading1, Heading2, Heading3, Link, Image,
   Undo2, Redo2, Minus, AlignLeft, AlignCenter, AlignRight,
-  RemoveFormatting, Type, Table
+  RemoveFormatting, Type, Table, Paintbrush, PaintBucket
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Separator } from "@/components/ui/separator";
