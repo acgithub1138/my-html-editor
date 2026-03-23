@@ -166,7 +166,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
           className={selectClass + " w-[130px]"}
           onChange={(e) => { if (e.target.value) onCommand("fontName", e.target.value); }}
           defaultValue=""
-          onMouseDown={(e) => e.stopPropagation()}
+          onMouseDown={() => onSaveSelection()}
         >
           <option value="" disabled>Font</option>
           {webSafeFonts.map((f) => (
