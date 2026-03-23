@@ -656,68 +656,77 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       };
     };
 
-    if (sourceMode) {
-      const lines = sourceValue.split("\n");
-      const lineCount = lines.length;
-      const gutterWidth = Math.max(3, String(lineCount).length) * 10 + 16;
-      const gutterRef = React.createRef<HTMLDivElement>();
-      const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        if (gutterRef.current) {
-          gutterRef.current.scrollTop = e.currentTarget.scrollTop;
-        }
-      };
-      const wrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
-      return (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Source header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-toolbar border-b border-border">
-            <span className="text-sm font-semibold text-foreground">Source Code</span>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={wordWrap}
-                onChange={(e) => setWordWrap(e.target.checked)}
-                className="rounded border-border"
-              />
-              Word wrap
-            </label>
-          </div>
-          <div className="flex min-w-0 flex-1 overflow-hidden bg-editor-surface">
-            {/* Line numbers gutter */}
-            <div
-              ref={gutterRef}
-              className="flex-shrink-0 overflow-hidden bg-editor-gutter border-r border-border select-none"
-              style={{ width: gutterWidth }}
-              aria-hidden
-            >
-              <div className="py-3 font-mono text-sm leading-[1.5]">
-                {Array.from({ length: lineCount }, (_, i) => (
-                  <div
-                    key={i}
-                    className="px-2 text-right text-muted-foreground/60"
-                  >
-                    {i + 1}
-                  </div>
-                ))}
+    const sourceLines = sourceValue.split("\n");
+    const sourceLineCount = sourceLines.length;
+    const sourceGutterWidth = Math.max(3, String(sourceLineCount).length) * 10 + 16;
+    const sourceGutterRef = React.createRef<HTMLDivElement>();
+    const syncSourceScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+      if (sourceGutterRef.current) {
+        sourceGutterRef.current.scrollTop = e.currentTarget.scrollTop;
+      }
+    };
+    const sourceWrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
+
+    return (
+      <>
+      {/* Source Code Modal */}
+      {sourceMode && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) toggleSource(); }}>
+          <div className="flex flex-col w-[90vw] max-w-4xl h-[80vh] bg-editor-surface border border-border rounded-lg shadow-2xl overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-toolbar border-b border-border">
+              <span className="text-sm font-semibold text-foreground">Source Code</span>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={wordWrap}
+                    onChange={(e) => setWordWrap(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  Word wrap
+                </label>
+                <button
+                  onClick={toggleSource}
+                  className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
+                  title="Close"
+                >
+                  ✕
+                </button>
               </div>
             </div>
-            <div className="relative min-w-0 flex-1 overflow-hidden">
-              <textarea
-                ref={sourceRef}
-                value={sourceValue}
-                onChange={handleSourceChange}
-                onScroll={syncScroll}
-                className={`relative block w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-editor-surface text-foreground outline-none resize-none leading-[1.5] ${wrapClass}`}
-                spellCheck={false}
-                autoFocus
-              />
+            {/* Source editor */}
+            <div className="flex min-w-0 flex-1 overflow-hidden">
+              {/* Line numbers gutter */}
+              <div
+                ref={sourceGutterRef}
+                className="flex-shrink-0 overflow-hidden bg-editor-gutter border-r border-border select-none"
+                style={{ width: sourceGutterWidth }}
+                aria-hidden
+              >
+                <div className="py-3 font-mono text-sm leading-[1.5]">
+                  {Array.from({ length: sourceLineCount }, (_, i) => (
+                    <div key={i} className="px-2 text-right text-muted-foreground/60">
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="relative min-w-0 flex-1 overflow-hidden">
+                <textarea
+                  ref={sourceRef}
+                  value={sourceValue}
+                  onChange={handleSourceChange}
+                  onScroll={syncSourceScroll}
+                  className={`relative block w-full h-full min-h-full py-3 px-4 font-mono text-sm bg-editor-surface text-foreground outline-none resize-none leading-[1.5] ${sourceWrapClass}`}
+                  spellCheck={false}
+                  autoFocus
+                />
+              </div>
             </div>
           </div>
         </div>
-      );
-    }
-
-    return (
+      )}
       <div className="relative flex-1 overflow-auto bg-editor-surface">
         {isEmpty && (
           <div className="absolute top-6 left-8 text-muted-foreground pointer-events-none select-none">
@@ -818,6 +827,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           />
         )}
       </div>
+      </>
     );
   }
 );
