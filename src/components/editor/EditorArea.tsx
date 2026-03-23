@@ -93,7 +93,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         if (sourceMode) return;
 
         // For font/size commands, restore the saved selection first (it gets lost when clicking dropdowns)
-        if (command === "fontSize" || command === "fontName" || command === "code") {
+        if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
           restoreSelection();
         } else {
           editorRef.current?.focus();
