@@ -142,11 +142,54 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
   const iconSize = 16;
 
+  const webSafeFonts = [
+    "Arial", "Arial Black", "Courier New", "Georgia", "Helvetica",
+    "Impact", "Lucida Console", "Lucida Sans Unicode", "Palatino Linotype",
+    "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana", "Comic Sans MS",
+  ];
+
+  const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48];
+
+  const selectClass = "h-7 px-1.5 text-xs border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring cursor-pointer";
+
   return (
     <div className="bg-toolbar border-b border-border">
       <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap">
         <ToolbarButton icon={<Undo2 size={iconSize} />} label="Undo (Ctrl+Z)" onClick={() => onCommand("undo")} />
         <ToolbarButton icon={<Redo2 size={iconSize} />} label="Redo (Ctrl+Y)" onClick={() => onCommand("redo")} />
+
+        <Separator orientation="vertical" className="h-5 mx-1" />
+
+        {/* Font Family */}
+        <select
+          className={selectClass + " w-[130px]"}
+          onChange={(e) => { if (e.target.value) onCommand("fontName", e.target.value); }}
+          defaultValue=""
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <option value="" disabled>Font</option>
+          {webSafeFonts.map((f) => (
+            <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+          ))}
+        </select>
+
+        {/* Font Size */}
+        <select
+          className={selectClass + " w-[65px]"}
+          onChange={(e) => {
+            if (e.target.value) {
+              // fontSize command uses 1-7 scale, so we use inline style via insertHTML instead
+              onCommand("fontSize", e.target.value);
+            }
+          }}
+          defaultValue=""
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <option value="" disabled>Size</option>
+          {fontSizes.map((s) => (
+            <option key={s} value={String(s)}>{s}pt</option>
+          ))}
+        </select>
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
