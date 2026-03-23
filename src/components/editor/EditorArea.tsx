@@ -901,6 +901,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             position={contextMenu}
             onClose={() => setContextMenu(null)}
             onAction={handleTableAction}
+            canMerge={selectedCells.size >= 2}
+            canSplit={!!(contextCellRef.current && ((contextCellRef.current as HTMLTableCellElement).rowSpan > 1 || (contextCellRef.current as HTMLTableCellElement).colSpan > 1))}
           />
         )}
         {contextMenu && contextMenu.type === "image" && (
