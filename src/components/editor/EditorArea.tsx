@@ -531,10 +531,18 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     };
 
     if (sourceMode) {
+      const highlightRef = React.createRef<HTMLDivElement>();
+      const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+      };
       return (
-        <div className="relative flex-1 overflow-auto bg-editor-gutter">
+        <div className="relative flex-1 overflow-hidden bg-editor-gutter">
           <div
-            className="absolute inset-0 p-6 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden"
+            ref={highlightRef}
+            className="absolute inset-0 p-6 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden leading-[1.5]"
             aria-hidden
             dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
           />
@@ -542,7 +550,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             ref={sourceRef}
             value={sourceValue}
             onChange={handleSourceChange}
-            className="relative w-full h-full min-h-full p-6 font-mono text-sm bg-transparent text-transparent caret-foreground outline-none resize-none"
+            onScroll={syncScroll}
+            className="relative w-full h-full min-h-full p-6 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5]"
             spellCheck={false}
             autoFocus
             style={{ caretColor: "hsl(var(--foreground))" }}
