@@ -44,7 +44,7 @@ interface EditorToolbarProps {
   isSourceMode: boolean;
   onToggleSource: () => void;
   onInsertTable: (rows: number, cols: number) => void;
-  onInsertImage: (url: string, width: string, height: string) => void;
+  onInsertImage: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   onSaveSelection: () => void;
 }
 
