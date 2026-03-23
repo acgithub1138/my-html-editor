@@ -288,24 +288,95 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkTarget, setLinkTarget] = useState("");
+  const [linkUrlError, setLinkUrlError] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return false;
+    try {
+      // Allow relative URLs starting with / or #
+      if (url.startsWith("/") || url.startsWith("#") || url.startsWith("mailto:") || url.startsWith("tel:")) return true;
+      new URL(url);
+      return true;
+    } catch {
+      // Try with https:// prefix
+      try {
+        new URL("https://" + url);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const handleLinkOpen = useCallback(() => {
     onSaveSelection();
-    setLinkUrl("");
-    setLinkText("");
+    const sel = window.getSelection();
+    const selectedText = sel && !sel.isCollapsed ? sel.toString() : "";
+
+    // Check if selection is inside an existing link
+    let existingUrl = "";
+    let existingTitle = "";
+    let existingTarget = "";
+    if (sel && sel.rangeCount > 0) {
+      const node = sel.anchorNode;
+      const anchor = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("a") as HTMLAnchorElement | null;
+      if (anchor) {
+        existingUrl = anchor.href || "";
+        existingTitle = anchor.title || "";
+        existingTarget = anchor.target || "";
+      }
+    }
+
+    setLinkUrl(existingUrl);
+    setLinkText(selectedText);
+    setLinkTitle(existingTitle);
+    setLinkTarget(existingTarget);
+    setLinkUrlError("");
     setShowLinkDialog(true);
   }, [onSaveSelection]);
 
   const handleLinkInsert = useCallback(() => {
-    if (linkUrl) {
-      onCommand("createLink", linkUrl);
+    if (!linkUrl.trim()) {
+      setLinkUrlError("URL is required");
+      return;
     }
+    if (!isValidUrl(linkUrl)) {
+      setLinkUrlError("Please enter a valid URL");
+      return;
+    }
+
+    // Normalize URL — add https:// if no protocol
+    let finalUrl = linkUrl.trim();
+    if (!/^(https?:\/\/|mailto:|tel:|\/|#)/.test(finalUrl)) {
+      finalUrl = "https://" + finalUrl;
+    }
+
+    onCommand("createLink", finalUrl);
+
+    // After creating the link, set title and target on the <a> element
+    setTimeout(() => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const node = sel.anchorNode;
+        const anchor = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("a") as HTMLAnchorElement | null;
+        if (anchor) {
+          if (linkTitle) anchor.title = linkTitle;
+          if (linkTarget) anchor.target = linkTarget;
+        }
+      }
+    }, 0);
+
     setShowLinkDialog(false);
     setLinkUrl("");
     setLinkText("");
-  }, [linkUrl, onCommand]);
+    setLinkTitle("");
+    setLinkTarget("");
+    setLinkUrlError("");
+  }, [linkUrl, linkTitle, linkTarget, onCommand]);
 
   const iconSize = 16;
 
