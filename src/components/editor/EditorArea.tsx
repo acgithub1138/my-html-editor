@@ -676,10 +676,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
                 </label>
                 <button
                   onClick={toggleSource}
-                  className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
-                  title="Close"
+                  className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                 >
-                  ✕
+                  Update
                 </button>
               </div>
             </div>
