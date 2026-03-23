@@ -591,6 +591,38 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
   }
 );
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function highlightHTML(source: string): string {
+  // Tokenize and highlight HTML source
+  return source.replace(
+    /(<!--[\s\S]*?-->)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/g,
+    (match, comment, openBracket, tagName, attrs, closeBracket, entity) => {
+      if (comment) {
+        return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
+      }
+      if (entity) {
+        return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
+      }
+      if (tagName) {
+        let result = `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(openBracket)}${escapeHtml(tagName)}</span>`;
+        if (attrs) {
+          result += attrs.replace(
+            /([\w-]+)(\s*=\s*)(\"[^\"]*\"|\'[^\']*\')/g,
+            (_: string, attr: string, eq: string, val: string) =>
+              `<span style="color:hsl(var(--syntax-attr))">${escapeHtml(attr)}</span>${escapeHtml(eq)}<span style="color:hsl(var(--syntax-string))">${escapeHtml(val)}</span>`
+          );
+        }
+        result += `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(closeBracket)}</span>`;
+        return result;
+      }
+      return escapeHtml(match);
+    }
+  );
+}
+
 function formatHTML(html: string): string {
   let formatted = '';
   let indent = 0;
