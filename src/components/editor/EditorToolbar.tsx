@@ -285,22 +285,27 @@ const DropdownButton = ({
 };
 
 const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection, isFullscreen, onToggleFullscreen, isDark, onToggleDark }: EditorToolbarProps) => {
-  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
-  const handleLink = useCallback(() => {
-    if (showLinkInput) {
-      if (linkUrl) {
-        onCommand("createLink", linkUrl);
-      }
-      setShowLinkInput(false);
-      setLinkUrl("");
-    } else {
-      setShowLinkInput(true);
+  const handleLinkOpen = useCallback(() => {
+    onSaveSelection();
+    setLinkUrl("");
+    setLinkText("");
+    setShowLinkDialog(true);
+  }, [onSaveSelection]);
+
+  const handleLinkInsert = useCallback(() => {
+    if (linkUrl) {
+      onCommand("createLink", linkUrl);
     }
-  }, [showLinkInput, linkUrl, onCommand]);
+    setShowLinkDialog(false);
+    setLinkUrl("");
+    setLinkText("");
+  }, [linkUrl, onCommand]);
 
   const iconSize = 16;
 
@@ -401,7 +406,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLink} />
+        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLinkOpen} />
         <ToolbarButton icon={<RemoveFormatting size={iconSize} />} label="Clear Formatting" onClick={() => onCommand("removeFormat")} />
       </div>
 
@@ -456,30 +461,34 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
         <ToolbarButton icon={isDark ? <Sun size={iconSize} /> : <Moon size={iconSize} />} label={isDark ? "Light Mode" : "Dark Mode"} onClick={onToggleDark} />
       </div>
 
-      {showLinkInput && (
-        <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-toolbar">
-          <input
-            type="url"
-            placeholder="https://example.com"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLink()}
-            className="flex-1 px-2 py-1 text-sm border border-border rounded bg-editor-surface text-foreground outline-none focus:ring-1 focus:ring-ring"
-            autoFocus
-          />
-          <button
-            onClick={handleLink}
-            className="px-3 py-1 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            Insert
-          </button>
-          <button
-            onClick={() => { setShowLinkInput(false); setLinkUrl(""); }}
-            className="px-3 py-1 text-sm rounded text-muted-foreground hover:bg-toolbar-hover transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+      {showLinkDialog && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-[70]" onClick={() => setShowLinkDialog(false)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-popover border border-border rounded-lg shadow-xl w-[400px] max-w-[90vw]">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h3 className="text-base font-semibold text-foreground">Insert Link</h3>
+              <button onClick={() => setShowLinkDialog(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">URL</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLinkInsert()}
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
+              <button onClick={() => setShowLinkDialog(false)} className="px-4 py-1.5 text-sm rounded border border-border text-foreground hover:bg-accent transition-colors">Cancel</button>
+              <button onClick={handleLinkInsert} className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity">Insert</button>
+            </div>
+          </div>
+        </>
       )}
 
       {showImageDialog && (
