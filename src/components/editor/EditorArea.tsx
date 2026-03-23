@@ -291,7 +291,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     }, [emitChange]);
 
     // Dialog save handlers
-    const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string }) => {
+    const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string; borderStyle: string; borderColor: string; backgroundColor: string }) => {
       const table = contextTableRef.current;
       if (!table) return;
       table.style.width = props.width || "";
@@ -301,6 +301,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       table.setAttribute("border", props.borderWidth || "0");
       if (props.alignment) table.setAttribute("align", props.alignment);
       else table.removeAttribute("align");
+      table.style.borderStyle = props.borderStyle || "";
+      table.style.borderColor = props.borderColor || "";
+      table.style.backgroundColor = props.backgroundColor || "";
       setDialog(null);
       emitChange();
     }, [emitChange]);
