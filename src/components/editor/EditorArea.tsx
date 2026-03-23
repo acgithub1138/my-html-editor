@@ -93,7 +93,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         if (sourceMode) return;
 
         // For font/size commands, restore the saved selection first (it gets lost when clicking dropdowns)
-        if (command === "fontSize" || command === "fontName" || command === "code") {
+        if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
           restoreSelection();
         } else {
           editorRef.current?.focus();
@@ -127,6 +127,28 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             span.appendChild(contents);
             range.insertNode(span);
             selection.removeAllRanges();
+          }
+        } else if (command === "foreColor" && value) {
+          restoreSelection();
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
+            const span = document.createElement("span");
+            span.style.color = value;
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
+          }
+        } else if (command === "cellBgColor" && value) {
+          // Find the closest <td> or <th> from the current selection
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const node = selection.anchorNode;
+            const cell = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("td, th") as HTMLElement | null;
+            if (cell) {
+              cell.style.backgroundColor = value;
+            }
           }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
