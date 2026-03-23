@@ -46,6 +46,10 @@ interface EditorToolbarProps {
   onInsertTable: (rows: number, cols: number) => void;
   onInsertImage: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   onSaveSelection: () => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  isDark: boolean;
+  onToggleDark: () => void;
 }
 
 const TablePicker = ({ onInsert, onClose }: { onInsert: (r: number, c: number) => void; onClose: () => void }) => {
