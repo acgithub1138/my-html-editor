@@ -9,6 +9,7 @@ export interface EditorAreaHandle {
   insertImageWithSize: (url: string, width: string, height: string) => void;
   isSourceMode: boolean;
   toggleSource: () => void;
+  saveSelection: () => void;
 }
 
 interface EditorAreaProps {
