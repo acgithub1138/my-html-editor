@@ -13,6 +13,7 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
+  const [isSourceMode, setIsSourceMode] = useState(false);
 
   const updateCounts = useCallback((html: string) => {
     const div = document.createElement("div");
@@ -24,7 +25,6 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
 
   const handleCommand = useCallback((command: string, value?: string) => {
     editorRef.current?.execCommand(command, value);
-    // Update active formats after command
     setTimeout(() => {
       const formats = editorRef.current?.getActiveFormats() || new Set();
       setActiveFormats(formats);
@@ -41,16 +41,36 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
     onChange?.(html);
   }, [onChange, updateCounts]);
 
+  const handleToggleSource = useCallback(() => {
+    editorRef.current?.toggleSource();
+  }, []);
+
+  const handleInsertTable = useCallback((rows: number, cols: number) => {
+    editorRef.current?.insertTable(rows, cols);
+  }, []);
+
+  const handleInsertImage = useCallback((url: string, width: string, height: string) => {
+    editorRef.current?.insertImageWithSize(url, width, height);
+  }, []);
+
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden shadow-sm bg-editor-surface">
-      <EditorToolbar onCommand={handleCommand} activeFormats={activeFormats} />
+      <EditorToolbar
+        onCommand={handleCommand}
+        activeFormats={activeFormats}
+        isSourceMode={isSourceMode}
+        onToggleSource={handleToggleSource}
+        onInsertTable={handleInsertTable}
+        onInsertImage={handleInsertImage}
+      />
       <EditorArea
         ref={editorRef}
         onChange={handleChange}
         onSelectionChange={handleSelectionChange}
         initialContent={initialContent}
+        onSourceModeChange={setIsSourceMode}
       />
-      <StatusBar wordCount={wordCount} charCount={charCount} />
+      <StatusBar wordCount={wordCount} charCount={charCount} isSourceMode={isSourceMode} />
     </div>
   );
 };

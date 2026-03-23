@@ -211,3 +211,25 @@ All colors MUST be HSL.
   border-top: 1px solid hsl(var(--border));
   margin: 1.5rem 0;
 }
+
+.editor-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.editor-content th,
+.editor-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.editor-content th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.editor-content td {
+  min-width: 60px;
+}
