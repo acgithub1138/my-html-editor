@@ -29,6 +29,26 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [sourceValue, setSourceValue] = useState("");
     // Stores the HTML to load into the visual editor when it remounts
     const pendingHTMLRef = useRef<string | null>(null);
+    const savedRangeRef = useRef<Range | null>(null);
+
+    const saveSelection = useCallback(() => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      }
+    }, []);
+
+    const restoreSelection = useCallback(() => {
+      const range = savedRangeRef.current;
+      if (range) {
+        editorRef.current?.focus();
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }, []);
 
     // On first mount or when switching back to visual, load content into the div
     useEffect(() => {
