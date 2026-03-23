@@ -952,6 +952,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         {dialog === "cell" && (
           <CellPropertiesDialog initial={getCellProps()} onSave={handleSaveCellProps} onClose={() => setDialog(null)} />
         )}
+        {dialog === "column" && (
+          <ColumnPropertiesDialog initial={getColumnProps()} onSave={handleSaveColumnProps} onClose={() => setDialog(null)} />
+        )}
         {dialog === "row" && (
           <RowPropertiesDialog initial={getRowProps()} onSave={handleSaveRowProps} onClose={() => setDialog(null)} />
         )}
