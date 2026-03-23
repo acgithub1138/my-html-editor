@@ -659,7 +659,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, [handleUndo, handleRedo]);
 
-    // Click selection for images and tables
+    // Clear cell selection
+    const clearCellSelection = useCallback(() => {
+      selectedCells.forEach(c => c.classList.remove("editor-cell-selected"));
+      setSelectedCells(new Set());
+    }, [selectedCells]);
+
+    // Click selection for images, tables, and multi-cell selection
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       // Deselect previous image
@@ -677,20 +683,41 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         setSelectedImage(img);
         setSelectedTable(null);
         contextImageRef.current = img;
+        clearCellSelection();
       } else {
         setSelectedImage(null);
-        // Check if clicked inside a table
+
+        // Multi-cell selection with Ctrl/Cmd+click
+        const clickedCell = target.closest("td, th") as HTMLTableCellElement | null;
         const table = target.closest("table") as HTMLTableElement | null;
-        if (table && editorRef.current?.contains(table)) {
+
+        if (clickedCell && table && editorRef.current?.contains(table)) {
           table.classList.add("editor-table-selected");
           setSelectedTable(table);
           contextTableRef.current = table;
+
+          if (e.ctrlKey || e.metaKey) {
+            // Toggle cell selection
+            const newSet = new Set(selectedCells);
+            if (newSet.has(clickedCell)) {
+              clickedCell.classList.remove("editor-cell-selected");
+              newSet.delete(clickedCell);
+            } else {
+              clickedCell.classList.add("editor-cell-selected");
+              newSet.add(clickedCell);
+            }
+            setSelectedCells(newSet);
+          } else {
+            // Single click: clear multi-selection
+            clearCellSelection();
+          }
         } else {
           setSelectedTable(null);
+          clearCellSelection();
         }
       }
       onSelectionChange?.();
-    }, [selectedImage, selectedTable, onSelectionChange]);
+    }, [selectedImage, selectedTable, onSelectionChange, selectedCells, clearCellSelection]);
 
     const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
