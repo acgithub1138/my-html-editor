@@ -295,6 +295,90 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           }
           break;
         }
+        case "mergeCells": {
+          if (selectedCells.size < 2) break;
+          const cells = Array.from(selectedCells);
+          // Find bounding rectangle
+          const positions = cells.map(c => {
+            const r = c.parentElement as HTMLTableRowElement;
+            const rowIdx = Array.from(table.rows).indexOf(r);
+            const colIdx = Array.from(r.cells).indexOf(c);
+            return { cell: c, row: rowIdx, col: colIdx };
+          });
+          const minRow = Math.min(...positions.map(p => p.row));
+          const maxRow = Math.max(...positions.map(p => p.row));
+          const minCol = Math.min(...positions.map(p => p.col));
+          const maxCol = Math.max(...positions.map(p => p.col));
+          const rowSpan = maxRow - minRow + 1;
+          const colSpan = maxCol - minCol + 1;
+
+          // Collect content from all cells
+          const contents: string[] = [];
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              const tc = table.rows[r]?.cells[c];
+              if (tc && tc.innerHTML.trim() !== "&nbsp;" && tc.innerHTML.trim() !== "") {
+                contents.push(tc.innerHTML);
+              }
+            }
+          }
+
+          // Remove all cells except the top-left
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = maxCol; c >= minCol; c--) {
+              if (r === minRow && c === minCol) continue;
+              table.rows[r]?.cells[c]?.remove();
+            }
+          }
+
+          // Set spans on the top-left cell
+          const mergedCell = table.rows[minRow]?.cells[minCol];
+          if (mergedCell) {
+            if (rowSpan > 1) mergedCell.rowSpan = rowSpan;
+            if (colSpan > 1) mergedCell.colSpan = colSpan;
+            mergedCell.innerHTML = contents.length > 0 ? contents.join(" ") : "&nbsp;";
+          }
+
+          clearCellSelection();
+          break;
+        }
+        case "splitCell": {
+          if (!cell) break;
+          const rs = cell.rowSpan || 1;
+          const cs = cell.colSpan || 1;
+          if (rs <= 1 && cs <= 1) break;
+
+          const rowIdx = Array.from(table.rows).indexOf(cell.parentElement as HTMLTableRowElement);
+          const colIdx = Array.from((cell.parentElement as HTMLTableRowElement).cells).indexOf(cell);
+
+          cell.rowSpan = 1;
+          cell.colSpan = 1;
+
+          // Add missing cells in the first row
+          for (let c = 1; c < cs; c++) {
+            const td = document.createElement("td");
+            td.innerHTML = "&nbsp;";
+            td.style.border = cell.style.border;
+            td.style.padding = cell.style.padding;
+            const nextCell = cell.nextElementSibling;
+            (cell.parentElement as HTMLTableRowElement).insertBefore(td, nextCell);
+          }
+
+          // Add cells in subsequent rows
+          for (let r = 1; r < rs; r++) {
+            const targetRow = table.rows[rowIdx + r];
+            if (!targetRow) continue;
+            for (let c = 0; c < cs; c++) {
+              const td = document.createElement("td");
+              td.innerHTML = "&nbsp;";
+              td.style.border = cell.style.border;
+              td.style.padding = cell.style.padding;
+              const refCell = targetRow.cells[colIdx] || null;
+              targetRow.insertBefore(td, refCell);
+            }
+          }
+          break;
+        }
         case "deleteTable":
           table.remove();
           break;
@@ -307,6 +391,12 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         case "rowProperties":
           setDialog("row");
           return;
+        case "columnProperties": {
+          if (!cell || !row) return;
+          contextColIndexRef.current = Array.from(row.cells).indexOf(cell);
+          setDialog("column");
+          return;
+        }
         case "link": {
           const url = prompt("Enter URL:");
           if (url) {
