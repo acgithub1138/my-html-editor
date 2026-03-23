@@ -634,12 +634,34 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           onContextMenu={handleContextMenu}
           spellCheck
         />
-        {contextMenu && (
+        {contextMenu && contextMenu.type === "table" && (
           <TableContextMenu
             position={contextMenu}
             onClose={() => setContextMenu(null)}
             onAction={handleTableAction}
           />
+        )}
+        {contextMenu && contextMenu.type === "image" && (
+          <>
+            <div className="fixed inset-0 z-[49]" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }} />
+            <div
+              className="fixed z-50 min-w-[160px] bg-popover border border-border rounded-md shadow-lg py-1"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => { setContextMenu(null); setDialog("image"); }}
+              >
+                Image properties
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left text-foreground hover:bg-accent"
+                onClick={() => { contextImageRef.current?.remove(); setContextMenu(null); emitChange(); }}
+              >
+                Remove image
+              </button>
+            </div>
+          </>
         )}
         {dialog === "table" && (
           <TablePropertiesDialog initial={getTableProps()} onSave={handleSaveTableProps} onClose={() => setDialog(null)} />
@@ -649,6 +671,30 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         )}
         {dialog === "row" && (
           <RowPropertiesDialog initial={getRowProps()} onSave={handleSaveRowProps} onClose={() => setDialog(null)} />
+        )}
+        {dialog === "image" && contextImageRef.current && (
+          <ImagePropertiesDialog
+            initial={{
+              src: contextImageRef.current.getAttribute("src") || "",
+              alt: contextImageRef.current.getAttribute("alt") || "",
+              title: contextImageRef.current.getAttribute("title") || "",
+              width: contextImageRef.current.style.width || contextImageRef.current.getAttribute("width") || "",
+              height: contextImageRef.current.style.height || contextImageRef.current.getAttribute("height") || "",
+            }}
+            onSave={(props) => {
+              const img = contextImageRef.current;
+              if (!img) return;
+              img.setAttribute("src", props.src);
+              img.setAttribute("alt", props.alt);
+              if (props.title) img.setAttribute("title", props.title);
+              else img.removeAttribute("title");
+              img.style.width = props.width || "";
+              img.style.height = props.height || "";
+              setDialog(null);
+              emitChange();
+            }}
+            onClose={() => setDialog(null)}
+          />
         )}
       </div>
     );
