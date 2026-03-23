@@ -452,8 +452,8 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Maximize2 size={iconSize} />} label="Fullscreen" onClick={() => {/* future */}} />
-        <ToolbarButton icon={<Circle size={iconSize} />} label="Dark/Light" onClick={() => {/* future */}} />
+        <ToolbarButton icon={isFullscreen ? <Minimize2 size={iconSize} /> : <Maximize2 size={iconSize} />} label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} onClick={onToggleFullscreen} active={isFullscreen} />
+        <ToolbarButton icon={isDark ? <Sun size={iconSize} /> : <Moon size={iconSize} />} label={isDark ? "Light Mode" : "Dark Mode"} onClick={onToggleDark} />
       </div>
 
       {showLinkInput && (
