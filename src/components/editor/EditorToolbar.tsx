@@ -3,7 +3,7 @@ import {
   Quote, Code, Link, Image,
   Undo2, Redo2, AlignLeft, AlignCenter, AlignRight,
   RemoveFormatting, Table, Paintbrush, PaintBucket,
-  Maximize2, Circle, ChevronDown
+  Maximize2, Minimize2, Sun, Moon, ChevronDown
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Separator } from "@/components/ui/separator";
