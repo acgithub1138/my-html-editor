@@ -123,7 +123,7 @@ const ImageDialog = ({ onInsert, onClose }: { onInsert: (url: string, w: string,
   );
 };
 
-const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage }: EditorToolbarProps) => {
+const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection }: EditorToolbarProps) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
