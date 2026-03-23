@@ -8,7 +8,7 @@ export interface EditorAreaHandle {
   setHTML: (html: string) => void;
   getActiveFormats: () => Set<string>;
   insertTable: (rows: number, cols: number) => void;
-  insertImageWithSize: (url: string, width: string, height: string) => void;
+  insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => void;
   isSourceMode: boolean;
   toggleSource: () => void;
   saveSelection: () => void;
