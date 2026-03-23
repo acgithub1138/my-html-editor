@@ -491,7 +491,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Get current properties for dialogs
     const getTableProps = () => {
       const t = contextTableRef.current;
-      if (!t) return { width: "", height: "", cellSpacing: "", cellPadding: "", borderWidth: "", alignment: "" };
+      if (!t) return { width: "", height: "", cellSpacing: "", cellPadding: "", borderWidth: "", alignment: "", borderStyle: "", borderColor: "", backgroundColor: "" };
       return {
         width: t.style.width || t.getAttribute("width") || "",
         height: t.style.height || "",
@@ -499,6 +499,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         cellPadding: t.getAttribute("cellpadding") || "",
         borderWidth: t.getAttribute("border") || "",
         alignment: t.getAttribute("align") || "",
+        borderStyle: t.style.borderStyle || "",
+        borderColor: t.style.borderColor || "",
+        backgroundColor: t.style.backgroundColor || "",
       };
     };
 
