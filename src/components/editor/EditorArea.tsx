@@ -826,7 +826,7 @@ function highlightHTML(source: string): string {
   // First escape everything, then colorize the escaped tags
   const escaped = escapeHtml(source);
   return escaped.replace(
-    /(&lt;!--[\s\S]*?--&gt;)|(&lt;!DOCTYPE[^&]*?&gt;)|(&lt;\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:&quot;[^&]*?&quot;|&amp;quot;[^&]*?&amp;quot;|&apos;[^&]*?&apos;|"[^"]*?"|'[^']*?'|[^\s&]*))?)*)\s*(\/?&gt;)|(&amp;\w+;)/gi,
+    /(&lt;!--[\s\S]*?--&gt;)|(&lt;!DOCTYPE[\s\S]*?&gt;)|(&lt;\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:&quot;[\s\S]*?&quot;|&amp;quot;[\s\S]*?&amp;quot;|&apos;[\s\S]*?&apos;|"[^"]*?"|'[^']*?'|[^\s&]*))?)*)\s*(\/?&gt;)|(&amp;\w+;)/gi,
     (match, comment, doctype, openBracket, tagName, attrs, closeBracket, entity) => {
       if (comment) {
         return `<span style="color:hsl(var(--syntax-comment))">${comment}</span>`;
