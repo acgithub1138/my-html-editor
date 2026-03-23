@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import React, { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import TableContextMenu from "./TableContextMenu";
 import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog } from "./TablePropertiesDialog";
 
@@ -531,15 +531,30 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     };
 
     if (sourceMode) {
+      const highlightRef = React.createRef<HTMLDivElement>();
+      const syncScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+      };
       return (
-        <div className="relative flex-1 overflow-auto bg-editor-gutter">
+        <div className="relative flex-1 overflow-hidden bg-editor-gutter">
+          <div
+            ref={highlightRef}
+            className="absolute inset-0 p-6 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden leading-[1.5]"
+            aria-hidden
+            dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
+          />
           <textarea
             ref={sourceRef}
             value={sourceValue}
             onChange={handleSourceChange}
-            className="w-full h-full min-h-full p-6 font-mono text-sm bg-editor-gutter text-foreground outline-none resize-none"
+            onScroll={syncScroll}
+            className="relative w-full h-full min-h-full p-6 font-mono text-sm bg-transparent text-transparent outline-none resize-none leading-[1.5]"
             spellCheck={false}
             autoFocus
+            style={{ caretColor: "hsl(var(--foreground))" }}
           />
         </div>
       );
@@ -584,6 +599,38 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     );
   }
 );
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function highlightHTML(source: string): string {
+  // Tokenize and highlight HTML source
+  return source.replace(
+    /(<!--[\s\S]*?-->)|(<\/?)([\w-]+)((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*)\s*(\/?>)|(&\w+;)/g,
+    (match, comment, openBracket, tagName, attrs, closeBracket, entity) => {
+      if (comment) {
+        return `<span style="color:hsl(var(--syntax-comment))">${escapeHtml(comment)}</span>`;
+      }
+      if (entity) {
+        return `<span style="color:hsl(var(--syntax-entity))">${escapeHtml(entity)}</span>`;
+      }
+      if (tagName) {
+        let result = `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(openBracket)}${escapeHtml(tagName)}</span>`;
+        if (attrs) {
+          result += attrs.replace(
+            /([\w-]+)(\s*=\s*)(\"[^\"]*\"|\'[^\']*\')/g,
+            (_: string, attr: string, eq: string, val: string) =>
+              `<span style="color:hsl(var(--syntax-attr))">${escapeHtml(attr)}</span>${escapeHtml(eq)}<span style="color:hsl(var(--syntax-string))">${escapeHtml(val)}</span>`
+          );
+        }
+        result += `<span style="color:hsl(var(--syntax-tag))">${escapeHtml(closeBracket)}</span>`;
+        return result;
+      }
+      return escapeHtml(match);
+    }
+  );
+}
 
 function formatHTML(html: string): string {
   let formatted = '';

@@ -45,6 +45,11 @@ All colors MUST be HSL.
     --toolbar-hover: 220 14% 92%;
     --editor-surface: 0 0% 100%;
     --editor-gutter: 220 14% 96%;
+    --syntax-tag: 220 70% 45%;
+    --syntax-attr: 30 70% 40%;
+    --syntax-string: 150 60% 35%;
+    --syntax-comment: 220 10% 55%;
+    --syntax-entity: 340 65% 45%;
 
     --sidebar-background: 0 0% 98%;
 
