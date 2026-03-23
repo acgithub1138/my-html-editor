@@ -406,7 +406,7 @@ const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource,
 
         <Separator orientation="vertical" className="h-5 mx-1" />
 
-        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLink} />
+        <ToolbarButton icon={<Link size={iconSize} />} label="Insert Link" onClick={handleLinkOpen} />
         <ToolbarButton icon={<RemoveFormatting size={iconSize} />} label="Clear Formatting" onClick={() => onCommand("removeFormat")} />
       </div>
 
