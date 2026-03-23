@@ -29,6 +29,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [isEmpty, setIsEmpty] = useState(true);
     const [sourceMode, setSourceMode] = useState(false);
     const [sourceValue, setSourceValue] = useState("");
+    const [wordWrap, setWordWrap] = useState(true);
     const pendingHTMLRef = useRef<string | null>(null);
     const savedRangeRef = useRef<Range | null>(null);
 
