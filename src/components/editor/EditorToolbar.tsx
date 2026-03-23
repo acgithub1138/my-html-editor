@@ -285,22 +285,27 @@ const DropdownButton = ({
 };
 
 const EditorToolbar = ({ onCommand, activeFormats, isSourceMode, onToggleSource, onInsertTable, onInsertImage, onSaveSelection, isFullscreen, onToggleFullscreen, isDark, onToggleDark }: EditorToolbarProps) => {
-  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
-  const handleLink = useCallback(() => {
-    if (showLinkInput) {
-      if (linkUrl) {
-        onCommand("createLink", linkUrl);
-      }
-      setShowLinkInput(false);
-      setLinkUrl("");
-    } else {
-      setShowLinkInput(true);
+  const handleLinkOpen = useCallback(() => {
+    onSaveSelection();
+    setLinkUrl("");
+    setLinkText("");
+    setShowLinkDialog(true);
+  }, [onSaveSelection]);
+
+  const handleLinkInsert = useCallback(() => {
+    if (linkUrl) {
+      onCommand("createLink", linkUrl);
     }
-  }, [showLinkInput, linkUrl, onCommand]);
+    setShowLinkDialog(false);
+    setLinkUrl("");
+    setLinkText("");
+  }, [linkUrl, onCommand]);
 
   const iconSize = 16;
 
