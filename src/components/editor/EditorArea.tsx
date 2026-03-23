@@ -1,4 +1,6 @@
 import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import TableContextMenu from "./TableContextMenu";
+import TablePropertiesDialog, { CellPropertiesDialog, RowPropertiesDialog } from "./TablePropertiesDialog";
 
 export interface EditorAreaHandle {
   execCommand: (command: string, value?: string) => void;
@@ -27,9 +29,26 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [isEmpty, setIsEmpty] = useState(true);
     const [sourceMode, setSourceMode] = useState(false);
     const [sourceValue, setSourceValue] = useState("");
-    // Stores the HTML to load into the visual editor when it remounts
     const pendingHTMLRef = useRef<string | null>(null);
     const savedRangeRef = useRef<Range | null>(null);
+
+    // Context menu state
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+    const contextCellRef = useRef<HTMLElement | null>(null);
+    const contextRowRef = useRef<HTMLTableRowElement | null>(null);
+    const contextTableRef = useRef<HTMLTableElement | null>(null);
+
+    // Property dialog state
+    const [dialog, setDialog] = useState<"table" | "cell" | "row" | null>(null);
+
+    // Resize state
+    const resizeRef = useRef<{
+      type: "col" | "row";
+      table: HTMLTableElement;
+      index: number;
+      startPos: number;
+      startSizes: number[];
+    } | null>(null);
 
     const saveSelection = useCallback(() => {
       const sel = window.getSelection();
@@ -50,7 +69,107 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       }
     }, []);
 
-    // On first mount or when switching back to visual, load content into the div
+    const emitChange = useCallback(() => {
+      onChange?.(editorRef.current?.innerHTML || "");
+    }, [onChange]);
+
+    // Table resize by dragging borders
+    useEffect(() => {
+      const editor = editorRef.current;
+      if (!editor || sourceMode) return;
+
+      const getResizeTarget = (e: MouseEvent): { type: "col" | "row"; table: HTMLTableElement; index: number } | null => {
+        const target = e.target as HTMLElement;
+        const cell = target.closest("td, th") as HTMLTableCellElement | null;
+        if (!cell) return null;
+        const table = cell.closest("table") as HTMLTableElement | null;
+        if (!table) return null;
+
+        const rect = cell.getBoundingClientRect();
+        const threshold = 5;
+
+        // Check right edge for column resize
+        if (Math.abs(e.clientX - rect.right) < threshold) {
+          const row = cell.parentElement as HTMLTableRowElement;
+          const cellIndex = Array.from(row.cells).indexOf(cell);
+          return { type: "col", table, index: cellIndex };
+        }
+        // Check bottom edge for row resize
+        if (Math.abs(e.clientY - rect.bottom) < threshold) {
+          const row = cell.parentElement as HTMLTableRowElement;
+          const rows = Array.from(table.rows);
+          const rowIndex = rows.indexOf(row);
+          return { type: "row", table, index: rowIndex };
+        }
+        return null;
+      };
+
+      const onMouseDown = (e: MouseEvent) => {
+        const target = getResizeTarget(e);
+        if (!target) return;
+        e.preventDefault();
+
+        if (target.type === "col") {
+          // Get current column widths
+          const firstRow = target.table.rows[0];
+          if (!firstRow) return;
+          const sizes = Array.from(firstRow.cells).map(c => c.getBoundingClientRect().width);
+          resizeRef.current = { type: "col", table: target.table, index: target.index, startPos: e.clientX, startSizes: sizes };
+        } else {
+          const sizes = Array.from(target.table.rows).map(r => r.getBoundingClientRect().height);
+          resizeRef.current = { type: "row", table: target.table, index: target.index, startPos: e.clientY, startSizes: sizes };
+        }
+      };
+
+      const onMouseMove = (e: MouseEvent) => {
+        // Update cursor on hover
+        const target = getResizeTarget(e);
+        if (target && !resizeRef.current) {
+          editor.style.cursor = target.type === "col" ? "col-resize" : "row-resize";
+        } else if (!resizeRef.current) {
+          editor.style.cursor = "";
+        }
+
+        if (!resizeRef.current) return;
+        const r = resizeRef.current;
+
+        if (r.type === "col") {
+          const delta = e.clientX - r.startPos;
+          const newWidth = Math.max(20, r.startSizes[r.index] + delta);
+          // Apply width to all cells in that column
+          for (const row of Array.from(r.table.rows)) {
+            const cell = row.cells[r.index] as HTMLTableCellElement | undefined;
+            if (cell) cell.style.width = `${newWidth}px`;
+          }
+        } else {
+          const delta = e.clientY - r.startPos;
+          const row = r.table.rows[r.index];
+          if (row) {
+            const newHeight = Math.max(16, r.startSizes[r.index] + delta);
+            row.style.height = `${newHeight}px`;
+          }
+        }
+      };
+
+      const onMouseUp = () => {
+        if (resizeRef.current) {
+          resizeRef.current = null;
+          editor.style.cursor = "";
+          emitChange();
+        }
+      };
+
+      editor.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+
+      return () => {
+        editor.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+    }, [sourceMode, emitChange]);
+
     useEffect(() => {
       if (!sourceMode && editorRef.current) {
         const html = pendingHTMLRef.current ?? initialContent ?? "";
@@ -62,7 +181,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         }
         pendingHTMLRef.current = null;
       }
-    }, [sourceMode]); // intentionally only depends on sourceMode
+    }, [sourceMode]);
 
     const checkEmpty = useCallback(() => {
       if (editorRef.current) {
@@ -73,10 +192,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     const toggleSource = useCallback(() => {
       if (sourceMode) {
-        // Switching back to visual — stash edited HTML so the useEffect above picks it up
         pendingHTMLRef.current = sourceValue;
       } else {
-        // Switching to source — grab current visual HTML
         const html = editorRef.current?.innerHTML || "";
         setSourceValue(formatHTML(html));
       }
@@ -85,6 +202,147 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       onSourceModeChange?.(newMode);
     }, [sourceMode, sourceValue, onSourceModeChange]);
 
+    // Context menu handler
+    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const cell = target.closest("td, th") as HTMLElement | null;
+      if (!cell) return; // Only show for table cells
+
+      e.preventDefault();
+      contextCellRef.current = cell;
+      contextRowRef.current = cell.closest("tr") as HTMLTableRowElement;
+      contextTableRef.current = cell.closest("table") as HTMLTableElement;
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    }, []);
+
+    // Table context menu actions
+    const handleTableAction = useCallback((action: string) => {
+      const cell = contextCellRef.current as HTMLTableCellElement | null;
+      const row = contextRowRef.current;
+      const table = contextTableRef.current;
+      if (!table) return;
+
+      switch (action) {
+        case "insertRowBefore":
+        case "insertRowAfter": {
+          if (!row) break;
+          const newRow = row.cloneNode(false) as HTMLTableRowElement;
+          newRow.style.height = "";
+          for (let i = 0; i < row.cells.length; i++) {
+            const td = document.createElement("td");
+            td.innerHTML = "&nbsp;";
+            td.style.cssText = row.cells[i].style.cssText;
+            td.style.backgroundColor = "";
+            newRow.appendChild(td);
+          }
+          if (action === "insertRowBefore") row.parentNode?.insertBefore(newRow, row);
+          else row.parentNode?.insertBefore(newRow, row.nextSibling);
+          break;
+        }
+        case "deleteRow": {
+          if (!row) break;
+          if (table.rows.length <= 1) { table.remove(); break; }
+          row.remove();
+          break;
+        }
+        case "insertColumnBefore":
+        case "insertColumnAfter": {
+          if (!cell) break;
+          const colIdx = Array.from(row!.cells).indexOf(cell);
+          for (const r of Array.from(table.rows)) {
+            const td = document.createElement("td");
+            td.innerHTML = "&nbsp;";
+            const ref = r.cells[action === "insertColumnBefore" ? colIdx : colIdx + 1];
+            r.insertBefore(td, ref || null);
+          }
+          break;
+        }
+        case "deleteColumn": {
+          if (!cell || !row) break;
+          const idx = Array.from(row.cells).indexOf(cell);
+          if (row.cells.length <= 1) { table.remove(); break; }
+          for (const r of Array.from(table.rows)) {
+            r.cells[idx]?.remove();
+          }
+          break;
+        }
+        case "deleteTable":
+          table.remove();
+          break;
+        case "tableProperties":
+          setDialog("table");
+          return;
+        case "cellProperties":
+          setDialog("cell");
+          return;
+        case "rowProperties":
+          setDialog("row");
+          return;
+        case "link": {
+          const url = prompt("Enter URL:");
+          if (url) {
+            editorRef.current?.focus();
+            document.execCommand("createLink", false, url);
+          }
+          break;
+        }
+      }
+      emitChange();
+    }, [emitChange]);
+
+    // Dialog save handlers
+    const handleSaveTableProps = useCallback((props: { width: string; height: string; cellSpacing: string; cellPadding: string; borderWidth: string; alignment: string }) => {
+      const table = contextTableRef.current;
+      if (!table) return;
+      table.style.width = props.width || "";
+      table.style.height = props.height || "";
+      table.setAttribute("cellspacing", props.cellSpacing || "0");
+      table.setAttribute("cellpadding", props.cellPadding || "0");
+      table.setAttribute("border", props.borderWidth || "0");
+      if (props.alignment) table.setAttribute("align", props.alignment);
+      else table.removeAttribute("align");
+      setDialog(null);
+      emitChange();
+    }, [emitChange]);
+
+    const handleSaveCellProps = useCallback((props: { width: string; height: string; hAlign: string; vAlign: string }) => {
+      const cell = contextCellRef.current;
+      if (!cell) return;
+      cell.style.width = props.width || "";
+      cell.style.height = props.height || "";
+      if (props.hAlign) cell.setAttribute("align", props.hAlign);
+      else cell.removeAttribute("align");
+      if (props.vAlign) cell.style.verticalAlign = props.vAlign;
+      else cell.style.verticalAlign = "";
+      setDialog(null);
+      emitChange();
+    }, [emitChange]);
+
+    const handleSaveRowProps = useCallback((props: { rowType: string; alignment: string; height: string }) => {
+      const row = contextRowRef.current;
+      const table = contextTableRef.current;
+      if (!row || !table) return;
+      row.style.height = props.height || "";
+      if (props.alignment) row.setAttribute("align", props.alignment);
+      else row.removeAttribute("align");
+      // Move row to correct section
+      if (props.rowType === "header") {
+        let thead = table.querySelector("thead");
+        if (!thead) { thead = document.createElement("thead"); table.insertBefore(thead, table.firstChild); }
+        thead.appendChild(row);
+      } else if (props.rowType === "footer") {
+        let tfoot = table.querySelector("tfoot");
+        if (!tfoot) { tfoot = document.createElement("tfoot"); table.appendChild(tfoot); }
+        tfoot.appendChild(row);
+      } else {
+        let tbody = table.querySelector("tbody");
+        if (!tbody) { tbody = document.createElement("tbody"); table.appendChild(tbody); }
+        tbody.appendChild(row);
+      }
+      setDialog(null);
+      emitChange();
+    }, [emitChange]);
+
     useImperativeHandle(ref, () => ({
       isSourceMode: sourceMode,
       toggleSource,
@@ -92,7 +350,6 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       execCommand: (command: string, value?: string) => {
         if (sourceMode) return;
 
-        // For font/size commands, restore the saved selection first (it gets lost when clicking dropdowns)
         if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
           restoreSelection();
         } else {
@@ -141,14 +398,11 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
             selection.removeAllRanges();
           }
         } else if (command === "cellBgColor" && value) {
-          // Find the closest <td> or <th> from the current selection
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const node = selection.anchorNode;
             const cell = (node instanceof HTMLElement ? node : node?.parentElement)?.closest("td, th") as HTMLElement | null;
-            if (cell) {
-              cell.style.backgroundColor = value;
-            }
+            if (cell) cell.style.backgroundColor = value;
           }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
@@ -171,9 +425,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           editorRef.current.innerHTML = html;
           checkEmpty();
         }
-        if (sourceMode) {
-          setSourceValue(html);
-        }
+        if (sourceMode) setSourceValue(html);
       },
       getActiveFormats: () => {
         const formats = new Set<string>();
@@ -191,15 +443,11 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       insertTable: (rows: number, cols: number) => {
         if (sourceMode) return;
         editorRef.current?.focus();
-        let html = '<table><thead><tr>';
-        for (let c = 0; c < cols; c++) {
-          html += `<th>Header ${c + 1}</th>`;
-        }
-        html += '</tr></thead><tbody>';
-        for (let r = 0; r < rows - 1; r++) {
+        let html = '<table border="1" style="border-collapse:collapse;width:100%"><tbody>';
+        for (let r = 0; r < rows; r++) {
           html += '<tr>';
           for (let c = 0; c < cols; c++) {
-            html += '<td>&nbsp;</td>';
+            html += '<td style="border:1px solid hsl(220 13% 90%);padding:4px">&nbsp;</td>';
           }
           html += '</tr>';
         }
@@ -237,6 +485,43 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       setSourceValue(e.target.value);
     }, []);
 
+    // Get current properties for dialogs
+    const getTableProps = () => {
+      const t = contextTableRef.current;
+      if (!t) return { width: "", height: "", cellSpacing: "", cellPadding: "", borderWidth: "", alignment: "" };
+      return {
+        width: t.style.width || t.getAttribute("width") || "",
+        height: t.style.height || "",
+        cellSpacing: t.getAttribute("cellspacing") || "",
+        cellPadding: t.getAttribute("cellpadding") || "",
+        borderWidth: t.getAttribute("border") || "",
+        alignment: t.getAttribute("align") || "",
+      };
+    };
+
+    const getCellProps = () => {
+      const c = contextCellRef.current;
+      if (!c) return { width: "", height: "", hAlign: "", vAlign: "" };
+      return {
+        width: c.style.width || "",
+        height: c.style.height || "",
+        hAlign: c.getAttribute("align") || "",
+        vAlign: c.style.verticalAlign || "",
+      };
+    };
+
+    const getRowProps = () => {
+      const r = contextRowRef.current;
+      if (!r) return { rowType: "body", alignment: "", height: "" };
+      const parent = r.parentElement?.tagName.toLowerCase();
+      const rowType = parent === "thead" ? "header" : parent === "tfoot" ? "footer" : "body";
+      return {
+        rowType,
+        alignment: r.getAttribute("align") || "",
+        height: r.style.height || "",
+      };
+    };
+
     if (sourceMode) {
       return (
         <div className="relative flex-1 overflow-auto bg-editor-gutter">
@@ -268,8 +553,25 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           onKeyDown={handleKeyDown}
           onMouseUp={onSelectionChange}
           onKeyUp={onSelectionChange}
+          onContextMenu={handleContextMenu}
           spellCheck
         />
+        {contextMenu && (
+          <TableContextMenu
+            position={contextMenu}
+            onClose={() => setContextMenu(null)}
+            onAction={handleTableAction}
+          />
+        )}
+        {dialog === "table" && (
+          <TablePropertiesDialog initial={getTableProps()} onSave={handleSaveTableProps} onClose={() => setDialog(null)} />
+        )}
+        {dialog === "cell" && (
+          <CellPropertiesDialog initial={getCellProps()} onSave={handleSaveCellProps} onClose={() => setDialog(null)} />
+        )}
+        {dialog === "row" && (
+          <RowPropertiesDialog initial={getRowProps()} onSave={handleSaveRowProps} onClose={() => setDialog(null)} />
+        )}
       </div>
     );
   }
