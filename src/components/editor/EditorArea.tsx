@@ -88,32 +88,45 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     useImperativeHandle(ref, () => ({
       isSourceMode: sourceMode,
       toggleSource,
+      saveSelection,
       execCommand: (command: string, value?: string) => {
         if (sourceMode) return;
-        editorRef.current?.focus();
+
+        // For font/size commands, restore the saved selection first (it gets lost when clicking dropdowns)
+        if (command === "fontSize" || command === "fontName" || command === "code") {
+          restoreSelection();
+        } else {
+          editorRef.current?.focus();
+        }
+
         if (command === "code") {
           const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
+          if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
             const code = document.createElement("code");
             range.surroundContents(code);
           }
         } else if (command === "fontSize" && value) {
-          // Apply real pt size via span style instead of execCommand's 1-7 scale
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
             const span = document.createElement("span");
             span.style.fontSize = `${value}pt`;
-            range.surroundContents(span);
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
           }
         } else if (command === "fontName" && value) {
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const range = selection.getRangeAt(0);
+            const contents = range.extractContents();
             const span = document.createElement("span");
             span.style.fontFamily = value;
-            range.surroundContents(span);
+            span.appendChild(contents);
+            range.insertNode(span);
+            selection.removeAllRanges();
           }
         } else if (command === "formatBlock" && value) {
           document.execCommand("formatBlock", false, `<${value}>`);
