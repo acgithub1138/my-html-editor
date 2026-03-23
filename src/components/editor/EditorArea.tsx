@@ -43,6 +43,13 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     // Property dialog state
     const [dialog, setDialog] = useState<"table" | "cell" | "row" | "image" | null>(null);
     const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+    const [selectedTable, setSelectedTable] = useState<HTMLTableElement | null>(null);
+
+    // Undo/redo history
+    const historyRef = useRef<string[]>([]);
+    const historyIndexRef = useRef<number>(-1);
+    const isUndoRedoRef = useRef(false);
+    const MAX_HISTORY = 15;
 
     // Resize state
     const resizeRef = useRef<{
@@ -181,6 +188,11 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           const text = editorRef.current.textContent || "";
           setIsEmpty(text.trim().length === 0);
           onChange?.(html);
+          // Seed undo history
+          if (historyRef.current.length === 0) {
+            historyRef.current.push(html);
+            historyIndexRef.current = 0;
+          }
         }
         pendingHTMLRef.current = null;
       }
@@ -365,6 +377,10 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       execCommand: (command: string, value?: string) => {
         if (sourceMode) return;
 
+        // Intercept undo/redo to use custom history
+        if (command === "undo") { handleUndo(); return; }
+        if (command === "redo") { handleRedo(); return; }
+
         if (command === "fontSize" || command === "fontName" || command === "code" || command === "foreColor" || command === "cellBgColor") {
           restoreSelection();
         } else {
@@ -486,34 +502,98 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       },
     }));
 
+    const pushHistory = useCallback(() => {
+      if (isUndoRedoRef.current) return;
+      const html = editorRef.current?.innerHTML || "";
+      const idx = historyIndexRef.current;
+      // Don't push duplicate
+      if (historyRef.current[idx] === html) return;
+      // Truncate any forward history
+      historyRef.current = historyRef.current.slice(0, idx + 1);
+      historyRef.current.push(html);
+      // Limit to MAX_HISTORY
+      if (historyRef.current.length > MAX_HISTORY) {
+        historyRef.current.shift();
+      }
+      historyIndexRef.current = historyRef.current.length - 1;
+    }, []);
+
+    const handleUndo = useCallback(() => {
+      if (historyIndexRef.current <= 0) return;
+      isUndoRedoRef.current = true;
+      historyIndexRef.current--;
+      const html = historyRef.current[historyIndexRef.current];
+      if (editorRef.current) editorRef.current.innerHTML = html;
+      onChange?.(html);
+      checkEmpty();
+      isUndoRedoRef.current = false;
+    }, [onChange, checkEmpty]);
+
+    const handleRedo = useCallback(() => {
+      if (historyIndexRef.current >= historyRef.current.length - 1) return;
+      isUndoRedoRef.current = true;
+      historyIndexRef.current++;
+      const html = historyRef.current[historyIndexRef.current];
+      if (editorRef.current) editorRef.current.innerHTML = html;
+      onChange?.(html);
+      checkEmpty();
+      isUndoRedoRef.current = false;
+    }, [onChange, checkEmpty]);
+
     const handleInput = useCallback(() => {
       checkEmpty();
       onChange?.(editorRef.current?.innerHTML || "");
-    }, [onChange, checkEmpty]);
+      pushHistory();
+    }, [onChange, checkEmpty, pushHistory]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
       if (e.key === "Tab") {
         e.preventDefault();
         document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
       }
-    }, []);
+      // Custom undo/redo
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    }, [handleUndo, handleRedo]);
 
-    // Image click selection
+    // Click selection for images and tables
     const handleEditorClick = useCallback((e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
+      // Deselect previous image
       if (selectedImage) {
         selectedImage.classList.remove("editor-img-selected");
       }
+      // Deselect previous table
+      if (selectedTable) {
+        selectedTable.classList.remove("editor-table-selected");
+      }
+
       if (target.tagName === "IMG") {
         const img = target as HTMLImageElement;
         img.classList.add("editor-img-selected");
         setSelectedImage(img);
+        setSelectedTable(null);
         contextImageRef.current = img;
       } else {
         setSelectedImage(null);
+        // Check if clicked inside a table
+        const table = target.closest("table") as HTMLTableElement | null;
+        if (table && editorRef.current?.contains(table)) {
+          table.classList.add("editor-table-selected");
+          setSelectedTable(table);
+          contextTableRef.current = table;
+        } else {
+          setSelectedTable(null);
+        }
       }
       onSelectionChange?.();
-    }, [selectedImage, onSelectionChange]);
+    }, [selectedImage, selectedTable, onSelectionChange]);
 
     const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setSourceValue(e.target.value);
