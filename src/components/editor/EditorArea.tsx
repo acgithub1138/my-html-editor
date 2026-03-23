@@ -210,6 +210,8 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         pendingHTMLRef.current = sourceValue;
       } else {
         const html = editorRef.current?.innerHTML || "";
+        console.log("[toggleSource] raw innerHTML:", html);
+        console.log("[toggleSource] formatted:", formatHTML(html));
         setSourceValue(formatHTML(html));
       }
       const newMode = !sourceMode;
