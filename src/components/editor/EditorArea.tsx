@@ -533,13 +533,19 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     if (sourceMode) {
       return (
         <div className="relative flex-1 overflow-auto bg-editor-gutter">
+          <div
+            className="absolute inset-0 p-6 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden"
+            aria-hidden
+            dangerouslySetInnerHTML={{ __html: highlightHTML(sourceValue) + "\n" }}
+          />
           <textarea
             ref={sourceRef}
             value={sourceValue}
             onChange={handleSourceChange}
-            className="w-full h-full min-h-full p-6 font-mono text-sm bg-editor-gutter text-foreground outline-none resize-none"
+            className="relative w-full h-full min-h-full p-6 font-mono text-sm bg-transparent text-transparent caret-foreground outline-none resize-none"
             spellCheck={false}
             autoFocus
+            style={{ caretColor: "hsl(var(--foreground))" }}
           />
         </div>
       );
