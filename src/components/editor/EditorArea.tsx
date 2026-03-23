@@ -31,6 +31,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const [sourceValue, setSourceValue] = useState("");
     const [wordWrap, setWordWrap] = useState(true);
     const pendingHTMLRef = useRef<string | null>(null);
+    const lastHTMLRef = useRef(initialContent ?? "");
     const savedRangeRef = useRef<Range | null>(null);
 
     // Context menu state
@@ -80,7 +81,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     }, []);
 
     const emitChange = useCallback(() => {
-      onChange?.(editorRef.current?.innerHTML || "");
+      const html = editorRef.current?.innerHTML || "";
+      lastHTMLRef.current = html;
+      onChange?.(html);
     }, [onChange]);
 
     // Table resize by dragging borders
@@ -185,6 +188,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         const html = pendingHTMLRef.current ?? initialContent ?? "";
         if (html) {
           editorRef.current.innerHTML = html;
+          lastHTMLRef.current = html;
           const text = editorRef.current.textContent || "";
           setIsEmpty(text.trim().length === 0);
           onChange?.(html);
@@ -208,16 +212,16 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
     const toggleSource = useCallback(() => {
       if (sourceMode) {
         pendingHTMLRef.current = sourceValue;
+        lastHTMLRef.current = sourceValue;
       } else {
-        const html = editorRef.current?.innerHTML || "";
-        console.log("[toggleSource] raw innerHTML:", html);
-        console.log("[toggleSource] formatted:", formatHTML(html));
+        const html = editorRef.current?.innerHTML || lastHTMLRef.current || initialContent || "";
+        lastHTMLRef.current = html;
         setSourceValue(formatHTML(html));
       }
       const newMode = !sourceMode;
       setSourceMode(newMode);
       onSourceModeChange?.(newMode);
-    }, [sourceMode, sourceValue, onSourceModeChange]);
+    }, [sourceMode, sourceValue, onSourceModeChange, initialContent]);
 
     // Context menu handler
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -447,7 +451,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
           document.execCommand(command, false, value);
         }
         checkEmpty();
-        onChange?.(editorRef.current?.innerHTML || "");
+        const html = editorRef.current?.innerHTML || "";
+        lastHTMLRef.current = html;
+        onChange?.(html);
       },
       getHTML: () => {
         if (sourceMode) return sourceValue;
@@ -456,6 +462,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       setHTML: (html: string) => {
         if (editorRef.current) {
           editorRef.current.innerHTML = html;
+          lastHTMLRef.current = html;
           checkEmpty();
         }
         if (sourceMode) setSourceValue(html);
@@ -486,7 +493,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         }
         html += '</tbody></table><p><br></p>';
         document.execCommand("insertHTML", false, html);
-        onChange?.(editorRef.current?.innerHTML || "");
+        const nextHtml = editorRef.current?.innerHTML || "";
+        lastHTMLRef.current = nextHtml;
+        onChange?.(nextHtml);
       },
       insertImageWithSize: (url: string, width: string, height: string, alt?: string, title?: string) => {
         if (sourceMode) return;
@@ -500,7 +509,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
         const titleAttr = title ? ` title="${title}"` : '';
         const img = `<img src="${url}"${altAttr}${titleAttr}${style ? ` style="${style}"` : ''} />`;
         document.execCommand("insertHTML", false, img);
-        onChange?.(editorRef.current?.innerHTML || "");
+        const nextHtml = editorRef.current?.innerHTML || "";
+        lastHTMLRef.current = nextHtml;
+        onChange?.(nextHtml);
       },
     }));
 
@@ -526,6 +537,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       historyIndexRef.current--;
       const html = historyRef.current[historyIndexRef.current];
       if (editorRef.current) editorRef.current.innerHTML = html;
+      lastHTMLRef.current = html;
       onChange?.(html);
       checkEmpty();
       isUndoRedoRef.current = false;
@@ -537,6 +549,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
       historyIndexRef.current++;
       const html = historyRef.current[historyIndexRef.current];
       if (editorRef.current) editorRef.current.innerHTML = html;
+      lastHTMLRef.current = html;
       onChange?.(html);
       checkEmpty();
       isUndoRedoRef.current = false;
@@ -544,7 +557,9 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
 
     const handleInput = useCallback(() => {
       checkEmpty();
-      onChange?.(editorRef.current?.innerHTML || "");
+      const html = editorRef.current?.innerHTML || "";
+      lastHTMLRef.current = html;
+      onChange?.(html);
       pushHistory();
     }, [onChange, checkEmpty, pushHistory]);
 
@@ -667,7 +682,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
               Word wrap
             </label>
           </div>
-          <div className="flex-1 flex overflow-hidden bg-editor-surface">
+          <div className="flex min-w-0 flex-1 overflow-hidden bg-editor-surface">
             {/* Line numbers gutter */}
             <div
               ref={gutterRef}
@@ -686,7 +701,7 @@ const EditorArea = forwardRef<EditorAreaHandle, EditorAreaProps>(
                 ))}
               </div>
             </div>
-            <div className="relative flex-1 overflow-hidden">
+            <div className="relative min-w-0 flex-1 overflow-hidden">
               <textarea
                 ref={sourceRef}
                 value={sourceValue}
